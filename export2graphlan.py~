@@ -2,8 +2,8 @@
 
 
 from argparse import ArgumentParser
-from sys import path
-path.insert(0, 'hclust2/')
+from sys.path import insert
+insert(0, 'hclust2/')
 from hclust2 import DataMatrix 
 from colorsys import hsv_to_rgb
 from math import log
