@@ -3,11 +3,10 @@
 
 from argparse import ArgumentParser
 from sys import path
-path.insert(0, 'hclust2/')
-from hclust2 import DataMatrix 
 from colorsys import hsv_to_rgb
 from math import log
-
+path.insert(0, 'hclust2/')
+from hclust2 import DataMatrix
 
 __author__ = 'Francesco Asnicar'
 __email__ = "francesco.asnicar@gmail.com"
