@@ -4,10 +4,10 @@
 from argparse import ArgumentParser
 from colorsys import hsv_to_rgb
 from math import log
+
 from os.path import realpath, abspath, join, split
 from sys import path
 from inspect import getfile, currentframe
-
 hclust2_pkg = realpath(abspath(join(split(getfile(currentframe()))[0], 'hclust2')))
 
 if hclust2_pkg not in path :
