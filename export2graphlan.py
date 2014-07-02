@@ -8,11 +8,13 @@ from os.path import realpath, abspath, join, split
 from sys import path
 from inspect import getfile, currentframe
 
-hclust2_pkg = realpath(abspath(join(split(getfile(currentframe()))[0], 'hclust2')))
+from hclust2.hclust2 import DataMatrix
 
-if hclust2_pkg not in path :
-	path.insert(0, hclust2_pkg)
-	from hclust2 import DataMatrix
+#hclust2_pkg = realpath(abspath(join(split(getfile(currentframe()))[0], 'hclust2')))
+
+#if hclust2_pkg not in path :
+#	path.insert(0, hclust2_pkg)
+#	from hclust2 import DataMatrix
 
 
 __author__ = 'Francesco Asnicar'
@@ -265,7 +267,7 @@ def main() :
 			for taxonomy in taxa :
 				level = taxonomy.count('.') # which level is this taxonomy?
 				clean_taxonomy = taxonomy[taxonomy.rfind('.') + 1:] # retrieve the last level in taxonomic
-				scaled = args.def_clade_size # default clade size
+				scaled = args.def_clade_size
 
 				# scaled the size of the clade by the average abundance
 				if taxonomy.replace('.', '|') in abundances :
