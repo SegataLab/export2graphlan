@@ -91,6 +91,12 @@ def read_params() :
 		type = str,
 		required = False,
 		help = "If specified set the title of the GraPhlAn plot. Surround the string with \" if it contains spaces, e.g., --title \"Title example\"")
+	# title font size
+	parser.add_argument('--title_font_size',
+		default = 15,
+		type = int,
+		required = False,
+		help = "Set the title font size. Default is 15")
 	# clade size
 	parser.add_argument('--def_clade_size',
 		default = 10.,
@@ -123,6 +129,12 @@ def read_params() :
 		type = int,
 		required = False,
 		help = "Set the maximum font size. Default is 12")
+	# legend font size
+	parser.add_argument('--annotation_legend_font_size',
+		default = 10,
+		type = int,
+		required = False,
+		help = "Set the font size for the annotation legend. Default is 10")
 	# abundance threshold
 	parser.add_argument('--abundance_threshold',
 		default = 20.,
@@ -159,7 +171,7 @@ def read_params() :
 
 
 def main() :
-	colors = [(245, 90., 100.), (125, 80., 80.), (0, 80, 100.), (195, 100., 100.), (150, 100., 100.),
+	colors = [(245, 90., 100.), (125, 80., 80.), (0, 80., 100.), (195, 100., 100.), (150, 100., 100.),
 		(55, 100., 100.), (280, 80., 88.)] # HSV format
 	args = read_params()
 	lefse_input = None
@@ -247,12 +259,13 @@ def main() :
 			# set the title
 			if args.title :
 				annot_file.write(''.join(['\t'.join(['title', args.title]), '\n']))
+				annot_file.write(''.join(['\t'.join(['title_font_size', str(args.title_font_size)]), '\n']))
 
 			# write some basic customizations
 			annot_file.write(''.join(['\t'.join(['clade_separation', '0.5']), '\n']))
 			annot_file.write(''.join(['\t'.join(['branch_bracket_depth', '0.65']), '\n']))
 			annot_file.write(''.join(['\t'.join(['branch_bracket_width', '0.5']), '\n']))
-			annot_file.write(''.join(['\t'.join(['annotation_legend_font_size', '10']), '\n']))
+			annot_file.write(''.join(['\t'.join(['annotation_legend_font_size', str(args.annotation_legend_font_size)]), '\n']))
 			annot_file.write(''.join(['\t'.join(['class_legend_font_size', '10']), '\n']))
 			annot_file.write(''.join(['\t'.join(['class_legend_marker_size', '1.5']), '\n']))
 
@@ -265,7 +278,7 @@ def main() :
 				annot_file.write(''.join(['\t'.join([biom, 'clade_marker_size', '45']), '\n']))
 
 			for taxonomy in taxa :
-				level = taxonomy.count('.') # which level is this taxonomy?
+				level = taxonomy.count('.') + 1 # which level is this taxonomy?
 				clean_taxonomy = taxonomy[taxonomy.rfind('.') + 1:] # retrieve the last level in taxonomic
 				scaled = args.def_clade_size
 
@@ -288,8 +301,8 @@ def main() :
 								annot_file.write(''.join(['\t'.join([clean_taxonomy, 'clade_marker_color', rgbs]), '\n']))
 
 								if level >= args.start_background :
-									font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / (level + 1))
-									annotation = '*:*' if (level <= args.max_annotation_level) and (level > args.min_annotation_level) else '*'
+									font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / level)
+									annotation = '*' if (level <= args.max_annotation_level) and (level >= args.min_annotation_level) else '*:*'
 
 									annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_background_color', rgbs]), '\n']))
 
