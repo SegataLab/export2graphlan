@@ -319,10 +319,9 @@ def main() :
 									font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / level)
 									annotation = '*' if level in annotations_list else '*:*'
 
-									annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_background_color', rgbs]), '\n']))
-
 									# write the annotation only if the abundance is above a given threshold
 									if scaled >= args.abundance_threshold :
+										annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_background_color', rgbs]), '\n']))
 										annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation', annotation]), '\n']))
 										annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_font_size', str(font_size)]), '\n']))
 									else : # the clade abundance is lower w.r.t the threshold
