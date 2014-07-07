@@ -1,15 +1,26 @@
 #!/usr/bin/env python
 
+
 from argparse import ArgumentParser
 from colorsys import hsv_to_rgb
 from math import log
+from os.path import realpath, abspath, join, split
+from sys import path
+from inspect import getfile, currentframe
+
 from hclust2.hclust2 import DataMatrix
+
+#hclust2_pkg = realpath(abspath(join(split(getfile(currentframe()))[0], 'hclust2')))
+
+#if hclust2_pkg not in path :
+#	path.insert(0, hclust2_pkg)
+#	from hclust2 import DataMatrix
 
 
 __author__ = 'Francesco Asnicar'
 __email__ = "francesco.asnicar@gmail.com"
-__version__ = '0.09'
-__date__ = '7th July 2014'
+__version__ = '0.08'
+__date__ = '26th June 2014'
 
 
 def scale_color((h, s, v), factor = 1.) :
@@ -56,25 +67,25 @@ def read_params() :
 	group.add_argument('-a', '--annotation',
 		type = str,
 		required = True,
-		help = "Output filename where save GraPhlAn annotation")
+		help = "Output filename where save GraPhlAn annoation")
 
-	# annotations
-	parser.add_argument('--annotations',
-		default = None,
-		type = str,
+	# annotation level
+	parser.add_argument('--min_annotation_level',
+		default = 2,
+		type = int,
 		required = False,
-		help = "List which levels should be annotated in the tree. Use a comma separate values form, e.g., --annotation_levels 1,2,3")
-	parser.add_argument('--external_annotations',
-		default = None,
-		type = str,
+		help = "The minimum number of levels required to label a clade. Default 2, meaning microbial orders")
+	parser.add_argument('--max_annotation_level',
+		default = 5,
+		type = int,
 		required = False,
-		help = "List which levels should use the external legend for the annotation. Use a comma separate values form, e.g., --annotation_levels 1,2,3")
-	# shaded background
-	parser.add_argument('--background',
-		default = None,
-		type = str,
+		help = "The maximum number of levels required to label a clade. Default 5, meaning microbial species")
+	# background
+	parser.add_argument('--start_background',
+		default = 2,
+		type = int,
 		required = False,
-		help = "List which levels should be highlight with a shaded background. Use a comma separate values form, e.g., --background 1,2,3")
+		help = "From which taxonomical level start the shaded background. Default 2, meaning microbial orders")
 	# title
 	parser.add_argument('--title',
 		type = str,
@@ -138,6 +149,12 @@ def read_params() :
 	if (not args.lefse_input) and (not args.lefse_output) :
 		raise Exception("[read_params()] You must provide at least one of the two input parameters: ")
 
+	# check that min_annotation_level is less than max_annotation_level
+	if args.min_annotation_level > args.max_annotation_level :
+		print "[W] min_annotation_level cannot be greater than max_annotation_level, assigning their default values"
+		args.min_annotation_level = 2
+		args.max_annotation_level = 5
+
 	# check that min_clade_size is less than max_clade_size
 	if args.min_clade_size > args.max_clade_size :
 		print "[W] min_clade_size cannot be greater than max_clade_size, assigning their default values"
@@ -166,22 +183,6 @@ def main() :
 	max_abundances = None
 	max_effect_size = None
 	max_log_effect_size = None
-	background_list = []
-	shaded_background = []
-	annotations_list = []
-	external_annotations_list = []
-
-	# get the levels that should be shaded
-	if args.background :
-		background_list = [int(i.strip()) for i in args.background.strip().split(',')]
-
-	# get the levels that will use the internal annotation
-	if args.annotations :
-		annotations_list = [int(i.strip()) for i in args.annotations.strip().split(',')]
-
-	# get the levels that will use the external legend annotation
-	if args.external_annotations :
-		external_annotations_list = [int(i.strip()) for i in args.external_annotations.strip().split(',')]
 
 	# read the LEfSe files
 	try :
@@ -276,10 +277,9 @@ def main() :
 				annot_file.write(''.join(['\t'.join([biom, 'clade_marker_color', rgb]), '\n']))
 				annot_file.write(''.join(['\t'.join([biom, 'clade_marker_size', '45']), '\n']))
 
-			# write the annotation for the tree
 			for taxonomy in taxa :
 				level = taxonomy.count('.') + 1 # which level is this taxonomy?
-				clean_taxonomy = taxonomy[taxonomy.rfind('.') + 1:] # retrieve the last level in taxonomy
+				clean_taxonomy = taxonomy[taxonomy.rfind('.') + 1:] # retrieve the last level in taxonomic
 				scaled = args.def_clade_size
 
 				# scaled the size of the clade by the average abundance
@@ -287,21 +287,6 @@ def main() :
 					scaled = args.min_clade_size + args.max_clade_size * log(1. + (abundances[taxonomy.replace('.', '|')] / max_abundances))
 				
 				annot_file.write(''.join(['\t'.join([clean_taxonomy, 'clade_marker_size', str(scaled)]), '\n']))
-
-				# 
-				for l in background_list :
-					if level >= l :
-						lst = [s.strip() for s in taxonomy.strip().split('.')]
-						t = '.'.join(lst[:l])
-
-						if t not in shaded_background :
-							shaded_background.append(t)
-
-							font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / l)
-
-							annot_file.write(''.join(['\t'.join([t, 'annotation_background_color', '#a0a0a0']), '\n']))
-							annot_file.write(''.join(['\t'.join([t, 'annotation', '*']), '\n']))
-							annot_file.write(''.join(['\t'.join([t, 'annotation_font_size', str(font_size)]), '\n']))
 
 				if lefse_output :
 					if taxonomy in lefse_output :
@@ -315,9 +300,9 @@ def main() :
 								rgbs = scale_color(colors[color[bk]], fac)
 								annot_file.write(''.join(['\t'.join([clean_taxonomy, 'clade_marker_color', rgbs]), '\n']))
 
-								if (level in annotations_list) or (level in external_annotations_list) :
+								if level >= args.start_background :
 									font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / level)
-									annotation = '*' if level in annotations_list else '*:*'
+									annotation = '*' if (level <= args.max_annotation_level) and (level >= args.min_annotation_level) else '*:*'
 
 									annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_background_color', rgbs]), '\n']))
 
@@ -325,15 +310,9 @@ def main() :
 									if scaled >= args.abundance_threshold :
 										annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation', annotation]), '\n']))
 										annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_font_size', str(font_size)]), '\n']))
-									else : # the clade abundance is lower w.r.t the threshold
-										pass
-								else : # the taxonomy level is less that the min of the annotation list
-									pass
 							except Exception as e :
 								print e
-						else : # it's not a biomarker
-							pass
-				else : # lefse.output not provided
+				else :
 					pass
 	except Exception as e :
 		print e
@@ -341,3 +320,4 @@ def main() :
 
 if __name__ == '__main__' :
 	main()
+
