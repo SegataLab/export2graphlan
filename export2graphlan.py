@@ -13,6 +13,10 @@ __date__ = '7th July 2014'
 
 
 def scale_color((h, s, v), factor = 1.) :
+	'''
+	Takes as input a tuple that represents a color in HSV format, and optionally a scale factor.
+	Return an RGB string that is the HSV color, maybe scaled
+	'''
 	if (h < 0.) or (h > 360.) :
 		raise Exception(' '.join(['[scale_color()] Hue value out of range (0, 360):', str(h)]))
 	
@@ -31,6 +35,8 @@ def scale_color((h, s, v), factor = 1.) :
 
 
 def read_params() :
+	'''
+	'''
 	parser = ArgumentParser(description =  "export2graphlan.py (ver. " + __version__ +
 		" of " + __date__ + "). Convert MetaPhlAn, LEfSe, and/or HUMAnN output to GraPhlAn input format. Authors: "
 		+ __author__ + " (" + __email__ + ")")
@@ -63,18 +69,28 @@ def read_params() :
 		default = None,
 		type = str,
 		required = False,
-		help = "List which levels should be annotated in the tree. Use a comma separate values form, e.g., --annotation_levels 1,2,3")
+		help = "List which levels should be annotated in the tree. Use a comma separate values form, e.g., --annotation_levels 1,2,3. Default is None")
 	parser.add_argument('--external_annotations',
 		default = None,
 		type = str,
 		required = False,
-		help = "List which levels should use the external legend for the annotation. Use a comma separate values form, e.g., --annotation_levels 1,2,3")
+		help = "List which levels should use the external legend for the annotation. Use a comma separate values form, e.g., --annotation_levels 1,2,3. Default is None")
 	# shaded background
-	parser.add_argument('--background',
+	parser.add_argument('--background_levels',
 		default = None,
 		type = str,
 		required = False,
-		help = "List which levels should be highlight with a shaded background. Use a comma separate values form, e.g., --background 1,2,3")
+		help = "List which levels should be highlight with a shaded background. Use a comma separate values form, e.g., --background_levels 1,2,3")
+	parser.add_argument('--background_clades',
+		default = None,
+		type = str,
+		required = False,
+		help = "Specify the file that contains clades that should be highlight with a shaded background. Write one clades per row in the file")
+	parser.add_argument('--background_color',
+		default = '#808080',
+		type = str,
+		required = False,
+		help = "Set the color in RGB format to use for the shaded background. Default is #808080")
 	# title
 	parser.add_argument('--title',
 		type = str,
@@ -149,13 +165,25 @@ def read_params() :
 		print "[W] min_font_size cannot be greater than max_font_size, assigning their default values"
 		args.min_font_size = 8
 		args.max_font_size = 12
+
+	# check the background color, it could be not passed with the '#'
+	if '#' not in args.background_color :
+		args.background_color = ''.join(['#', args.background_color])
 	
 	return args
 
 
+def get_file_type(filename) :
+	'''
+	'''
+	return filename[filename.rfind('.') + 1:].lower()
+
+
 def main() :
-	colors = [(245, 90., 100.), (125, 80., 80.), (0, 80., 100.), (195, 100., 100.), (150, 100., 100.),
-		(55, 100., 100.), (280, 80., 88.)] # HSV format
+	'''
+	'''
+	colors = [(245., 90., 100.), (125., 80., 80.), (0., 80., 100.), (195., 100., 100.), (150., 100., 100.),
+		(55., 100., 100.), (280., 80., 88.)] # HSV format
 	args = read_params()
 	lefse_input = None
 	lefse_output = {}
@@ -167,13 +195,18 @@ def main() :
 	max_effect_size = None
 	max_log_effect_size = None
 	background_list = []
-	shaded_background = []
+	background_clades = []
 	annotations_list = []
 	external_annotations_list = []
 
 	# get the levels that should be shaded
-	if args.background :
-		background_list = [int(i.strip()) for i in args.background.strip().split(',')]
+	if args.background_levels :
+		background_list = [int(i.strip()) for i in args.background_levels.strip().split(',')]
+
+	# get the background_clades
+	if args.background_clades :
+		with open(args.background_clades, 'r') as f:
+			background_clades = [str(s.strip()) for s in f]
 
 	# get the levels that will use the internal annotation
 	if args.annotations :
@@ -186,12 +219,20 @@ def main() :
 	# read the LEfSe files
 	try :
 		if args.lefse_input :
+			# if the lefse_input is in biom format, convert it
+			if get_file_type(args.lefse_input) in 'biom' :
+				pass
+			
 			lefse_input = DataMatrix(args.lefse_input, args)
 			taxa = [t.replace('|', '.') for t in lefse_input.get_fnames()] # build taxonomy list
 			abundances = dict(lefse_input.get_averages())
 			max_abundances = max([abundances[x] for x in abundances])
 
 		if args.lefse_output :
+			# if the lefse_output is in biom format, convert it
+			if get_file_type(args.lefse_output) in 'biom' :
+				pass
+
 			lst = []
 
 			with open(args.lefse_output, 'r') as out_file :
@@ -210,19 +251,14 @@ def main() :
 				max_effect_size = max(lst)
 
 			# no lefse_input file provided!
-			if not taxa :
-				# build taxonomy list
+			if not taxa : # build taxonomy list
 				for t in lefse_output :
 					taxa.append(t)
 
-			if not abundances :
-				# build abundaces map
+			if not abundances : # build abundaces map
 				pass
-#		else :
-			# get biomarkers from lefse_input
-#			with open(args.lefse_input, 'r') as in_file :
-#				for bk in in_file.readline().strip().split('\t')[1:] :
-#					biomarkers |= set([bk])
+		else : # no lefse_output provided, choose the X most abundant, find the highest different levels, assign them different colors, and treat them as biomarkers
+			pass
 	except Exception as e :
 		print e
 
@@ -262,8 +298,8 @@ def main() :
 
 			# write some basic customizations
 			annot_file.write(''.join(['\t'.join(['clade_separation', '0.5']), '\n']))
-			annot_file.write(''.join(['\t'.join(['branch_bracket_depth', '0.65']), '\n']))
-			annot_file.write(''.join(['\t'.join(['branch_bracket_width', '0.5']), '\n']))
+			annot_file.write(''.join(['\t'.join(['branch_bracket_depth', '0.8']), '\n']))
+			annot_file.write(''.join(['\t'.join(['branch_bracket_width', '0.2']), '\n']))
 			annot_file.write(''.join(['\t'.join(['annotation_legend_font_size', str(args.annotation_legend_font_size)]), '\n']))
 			annot_file.write(''.join(['\t'.join(['class_legend_font_size', '10']), '\n']))
 			annot_file.write(''.join(['\t'.join(['class_legend_marker_size', '1.5']), '\n']))
@@ -288,7 +324,9 @@ def main() :
 				
 				annot_file.write(''.join(['\t'.join([clean_taxonomy, 'clade_marker_size', str(scaled)]), '\n']))
 
-				# 
+				# put a bakcground annotation to the levels specified by the user
+				shaded_background = []
+
 				for l in background_list :
 					if level >= l :
 						lst = [s.strip() for s in taxonomy.strip().split('.')]
@@ -299,9 +337,23 @@ def main() :
 
 							font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / l)
 
-							annot_file.write(''.join(['\t'.join([t, 'annotation_background_color', '#a0a0a0']), '\n']))
+							annot_file.write(''.join(['\t'.join([t, 'annotation_background_color', args.background_color]), '\n']))
 							annot_file.write(''.join(['\t'.join([t, 'annotation', '*']), '\n']))
 							annot_file.write(''.join(['\t'.join([t, 'annotation_font_size', str(font_size)]), '\n']))
+
+				# put a bakcground annotation to the clades specified by the user
+				done_clades = []
+
+				for c in background_clades :
+					if (c in taxonomy) and (c not in done_clades) :
+						l = taxonomy[:taxonomy.index(c)].count('.') + 1
+						font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / l)
+
+						annot_file.write(''.join(['\t'.join([c, 'annotation_background_color', args.background_color]), '\n']))
+						annot_file.write(''.join(['\t'.join([c, 'annotation', '*']), '\n']))
+						annot_file.write(''.join(['\t'.join([c, 'annotation_font_size', str(font_size)]), '\n']))
+
+						done_clades.append(c)
 
 				if lefse_output :
 					if taxonomy in lefse_output :
@@ -313,23 +365,23 @@ def main() :
 							
 							try :
 								rgbs = scale_color(colors[color[bk]], fac)
-								annot_file.write(''.join(['\t'.join([clean_taxonomy, 'clade_marker_color', rgbs]), '\n']))
-
-								if (level in annotations_list) or (level in external_annotations_list) :
-									font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / level)
-									annotation = '*' if level in annotations_list else '*:*'
-
-									# write the annotation only if the abundance is above a given threshold
-									if scaled >= args.abundance_threshold :
-										annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_background_color', rgbs]), '\n']))
-										annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation', annotation]), '\n']))
-										annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_font_size', str(font_size)]), '\n']))
-									else : # the clade abundance is lower w.r.t the threshold
-										pass
-								else : # the taxonomy level is less that the min of the annotation list
-									pass
 							except Exception as e :
 								print e
+								print ' '.join(["[W] Assign to", taxonomy, "the default color:", colors[color[bk]]])
+								rgbs = colors[color[bk]]
+
+							annot_file.write(''.join(['\t'.join([clean_taxonomy, 'clade_marker_color', rgbs]), '\n']))
+
+							# write the annotation only if the abundance is above a given threshold
+							if (scaled >= args.abundance_threshold) and ((level in annotations_list) or (level in external_annotations_list)) :
+								font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / level)
+								annotation = '*' if level in annotations_list else '*:*'
+
+								annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_background_color', rgbs]), '\n']))
+								annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation', annotation]), '\n']))
+								annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_font_size', str(font_size)]), '\n']))
+							else : # the clade abundance is lower w.r.t the threshold
+								pass
 						else : # it's not a biomarker
 							pass
 				else : # lefse.output not provided
