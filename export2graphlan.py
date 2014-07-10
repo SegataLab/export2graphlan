@@ -4,7 +4,9 @@ from argparse import ArgumentParser
 from colorsys import hsv_to_rgb
 from math import log
 from hclust2.hclust2 import DataMatrix
-
+from biom import load_table
+from random import randrange
+from os import remove
 
 __author__ = 'Francesco Asnicar'
 __email__ = "francesco.asnicar@gmail.com"
@@ -13,10 +15,10 @@ __date__ = '7th July 2014'
 
 
 def scale_color((h, s, v), factor = 1.) :
-	'''
+	"""
 	Takes as input a tuple that represents a color in HSV format, and optionally a scale factor.
 	Return an RGB string that is the HSV color, maybe scaled
-	'''
+	"""
 	if (h < 0.) or (h > 360.) :
 		raise Exception(' '.join(['[scale_color()] Hue value out of range (0, 360):', str(h)]))
 	
@@ -35,8 +37,8 @@ def scale_color((h, s, v), factor = 1.) :
 
 
 def read_params() :
-	'''
-	'''
+	"""
+	"""
 	parser = ArgumentParser(description =  "export2graphlan.py (ver. " + __version__ +
 		" of " + __date__ + "). Convert MetaPhlAn, LEfSe, and/or HUMAnN output to GraPhlAn input format. Authors: "
 		+ __author__ + " (" + __email__ + ")")
@@ -146,6 +148,18 @@ def read_params() :
 		type = float,
 		required = False,
 		help = "Set the minimun abundace value for a clade to be annotated. Default is 20.0")
+	# ONLY lefse_input provided
+	parser.add_argument('--most_abundant',
+		default = 10,
+		type = int,
+		required = False,
+		help = "When only lefse_input is provided, you can specify how many clades highlight. Since the biomarkers are missing, they will be chosen from the most abundant")
+	parser.add_argument('--least_biomarkers',
+		default = 3,
+		type = int,
+		required = False,
+		help = "When only lefse_input is provided, you can specify the minimum number of biomarkers extract. The taxonomy is parsed, and the level is choosen in order to have at least the specified number of biomarkers")
+		# ONLY lefse_output provided
 
 	DataMatrix.input_parameters(parser)
 	args = parser.parse_args()
@@ -174,16 +188,76 @@ def read_params() :
 
 
 def get_file_type(filename) :
-	'''
-	'''
+	"""
+	Return the extension (if any) of the ``filename`` in lower case
+	"""
 	return filename[filename.rfind('.') + 1:].lower()
 
 
+def parse_biom(filename) :
+	"""
+	"""
+	biom_table = load_table(filename)
+	strs = biom_table.delimited_self()
+	lst1 = [s for s in strs.split('\n')]
+	biom_file = 'biom_' + str(randrange(999999)) + '.txt'
+
+	with open(biom_file, 'w') as f :
+		f.write('\n'.join([s for s in lst1 if not s.startswith('#')]))
+
+	return biom_file
+
+
+def get_most_abundant(abundances, xxx) :
+	"""
+	"""
+	abundant = []
+
+	for a in abundances :
+		if a.count('|') > 0 :
+			abundant.append((float(abundances[a]), a.replace('|', '.')))
+
+	abundant.sort(reverse = True)
+
+	return abundant[:xxx]
+
+
+def get_biomarkes(abundant, xxx) :
+	"""
+	"""
+	bb = []
+	cc = []
+	bk = set()
+
+	for _, t in abundant :
+		bb.append(t)
+
+	bb.sort()
+
+	for b in bb :
+		cc.append(b.split('.'))
+
+	lvl = 0
+
+	while lvl < len(max(cc)) :
+		bk = set()
+
+		for c in cc :
+			if lvl < len(c) :
+				bk |= set([c[lvl]])
+
+		if len(bk) >= xxx :
+			break
+
+		lvl += 1
+
+	return bk
+
+
 def main() :
-	'''
-	'''
-	colors = [(245., 90., 100.), (125., 80., 80.), (0., 80., 100.), (195., 100., 100.), (150., 100., 100.),
-		(55., 100., 100.), (280., 80., 88.)] # HSV format
+	"""
+	"""
+	colors = [(245., 90., 100.), (125., 80., 80.), (0., 80., 100.), (195., 100., 100.), (150., 100., 100.), (55., 100., 100.), (280., 80., 88.)] # HSV format
 	args = read_params()
 	lefse_input = None
 	lefse_output = {}
@@ -216,59 +290,76 @@ def main() :
 	if args.external_annotations :
 		external_annotations_list = [int(i.strip()) for i in args.external_annotations.strip().split(',')]
 
-	# read the LEfSe files
-	try :
-		if args.lefse_input :
-			# if the lefse_input is in biom format, convert it
-			if get_file_type(args.lefse_input) in 'biom' :
-				pass
-			
-			lefse_input = DataMatrix(args.lefse_input, args)
-			taxa = [t.replace('|', '.') for t in lefse_input.get_fnames()] # build taxonomy list
-			abundances = dict(lefse_input.get_averages())
-			max_abundances = max([abundances[x] for x in abundances])
+	if args.lefse_input :
+		# if the lefse_input is in biom format, convert it
+		biom_file = None
 
-		if args.lefse_output :
-			# if the lefse_output is in biom format, convert it
-			if get_file_type(args.lefse_output) in 'biom' :
-				pass
+		if get_file_type(args.lefse_input) in 'biom' :
+			biom_file = parse_biom(args.lefse_input)
+			args.lefse_input = biom_file
+		
+		lefse_input = DataMatrix(args.lefse_input, args)
+		taxa = [t.replace('|', '.') for t in lefse_input.get_fnames()] # build taxonomy list
+		abundances = dict(lefse_input.get_averages())
+		max_abundances = max([abundances[x] for x in abundances])
 
-			lst = []
+		if biom_file :
+			remove(biom_file)
+			print biom_file + ' deleted!'
 
-			with open(args.lefse_output, 'r') as out_file :
-				for line in out_file :
-					t, v1, bk, es, pv = line.strip().split('\t')
-					lefse_output[t] = (es, bk, v1, pv)
-
-					# get distinct biomarkers
-					if bk :
-						biomarkers |= set([bk])
-
-					# get all effect size
-					if es :
-						lst.append(float(es))
-
-				max_effect_size = max(lst)
-
-			# no lefse_input file provided!
-			if not taxa : # build taxonomy list
-				for t in lefse_output :
-					taxa.append(t)
-
-			if not abundances : # build abundaces map
-				pass
-		else : # no lefse_output provided, choose the X most abundant, find the highest different levels, assign them different colors, and treat them as biomarkers
+	if args.lefse_output :
+		# if the lefse_output is in biom format... I don't think it's possible!
+		if get_file_type(args.lefse_output) in 'biom' :
+			print "Really??"
 			pass
-	except Exception as e :
-		print e
+
+		lst = []
+
+		with open(args.lefse_output, 'r') as out_file :
+			for line in out_file :
+				t, v1, bk, es, pv = line.strip().split('\t')
+				lefse_output[t] = (es, bk, v1, pv)
+
+				# get distinct biomarkers
+				if bk :
+					biomarkers |= set([bk])
+
+				# get all effect size
+				if es :
+					lst.append(float(es))
+
+			max_effect_size = max(lst)
+
+		# no lefse_input file provided!
+		if not taxa : # build taxonomy list
+			for t in lefse_output :
+				taxa.append(t)
+
+		if not abundances : # build abundaces map
+			pass
+	else : # no lefse_output provided
+		# find the xxx most abundant
+		abundant = get_most_abundant(abundances, args.most_abundant)
+
+		# find the highest deeper different taxonomy level with yyy distinct values from the xxx most abundant
+		biomarkers = get_biomarkes(abundant, args.least_biomarkers)
+
+		# compose lefse_output variable
+		for _, t in abundant :
+			b = ''
+
+			for bk in biomarkers :
+				if bk in t :
+					b = bk
+
+			lefse_output[t] = (2., b, '', '')
+
+		max_effect_size = 1. # It's not gonna working
 
 	# write the tree
-	try :
-		with open(args.tree, 'w') as tree_file :
-			for taxonomy in taxa :
-				tree_file.write(''.join([taxonomy, '\n']))
-	except Exception as e :
-		print e
+	with open(args.tree, 'w') as tree_file :
+		for taxonomy in taxa :
+			tree_file.write(''.join([taxonomy, '\n']))
 
 	# for each biomarker assign it to a different color
 	i = 0
@@ -306,7 +397,7 @@ def main() :
 
 			# write the biomarkers' legend
 			for bk in biomarkers :
-				biom = bk.replace('_', ' ')
+				biom = bk.replace('_', ' ').upper()
 				rgb = scale_color(colors[color[bk]])
 				annot_file.write(''.join(['\t'.join([biom, 'annotation', biom]), '\n']))
 				annot_file.write(''.join(['\t'.join([biom, 'clade_marker_color', rgb]), '\n']))
