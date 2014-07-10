@@ -1,6 +1,4 @@
 * biom input file
 
-* if only lefse_input: choose the X most abundant. Find the highest different levels, assign them different colors, and treat them as biomarkers
-
 * if only lefse_output: find a way to get an abundance value to trigger the shaded background
 
