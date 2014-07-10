@@ -311,7 +311,6 @@ def main() :
 		# if the lefse_output is in biom format... I don't think it's possible!
 		if get_file_type(args.lefse_output) in 'biom' :
 			print "Really??"
-			pass
 
 		lst = []
 
@@ -471,12 +470,6 @@ def main() :
 								annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_background_color', rgbs]), '\n']))
 								annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation', annotation]), '\n']))
 								annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_font_size', str(font_size)]), '\n']))
-							else : # the clade abundance is lower w.r.t the threshold
-								pass
-						else : # it's not a biomarker
-							pass
-				else : # lefse.output not provided
-					pass
 	except Exception as e :
 		print e
 
