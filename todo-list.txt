@@ -1,3 +1,1 @@
 * biom input file
-
-* if only lefse_output: find a way to get an abundance value to trigger the shaded background

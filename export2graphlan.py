@@ -8,16 +8,17 @@ from biom import load_table
 from random import randrange
 from os import remove
 
+
 __author__ = 'Francesco Asnicar'
 __email__ = "francesco.asnicar@gmail.com"
-__version__ = '0.09'
-__date__ = '7th July 2014'
+__version__ = '0.10'
+__date__ = '11th July 2014'
 
 
 def scale_color((h, s, v), factor = 1.) :
 	"""
 	Takes as input a tuple that represents a color in HSV format, and optionally a scale factor.
-	Return an RGB string that is the HSV color, maybe scaled
+	Return an RGB string that is the converted HSV color, scaled by the given factor.
 	"""
 	if (h < 0.) or (h > 360.) :
 		raise Exception(' '.join(['[scale_color()] Hue value out of range (0, 360):', str(h)]))
@@ -38,6 +39,8 @@ def scale_color((h, s, v), factor = 1.) :
 
 def read_params() :
 	"""
+	Parse the input parameters, performing some validity check.
+	Return the parsed arguments.
 	"""
 	parser = ArgumentParser(description =  "export2graphlan.py (ver. " + __version__ +
 		" of " + __date__ + "). Convert MetaPhlAn, LEfSe, and/or HUMAnN output to GraPhlAn input format. Authors: "
@@ -159,7 +162,6 @@ def read_params() :
 		type = int,
 		required = False,
 		help = "When only lefse_input is provided, you can specify the minimum number of biomarkers extract. The taxonomy is parsed, and the level is choosen in order to have at least the specified number of biomarkers")
-		# ONLY lefse_output provided
 
 	DataMatrix.input_parameters(parser)
 	args = parser.parse_args()
@@ -189,7 +191,7 @@ def read_params() :
 
 def get_file_type(filename) :
 	"""
-	Return the extension (if any) of the ``filename`` in lower case
+	Return the extension (if any) of the ``filename`` in lower case.
 	"""
 	return filename[filename.rfind('.') + 1:].lower()
 
@@ -210,6 +212,8 @@ def parse_biom(filename) :
 
 def get_most_abundant(abundances, xxx) :
 	"""
+	Sort by the abundance level all the taxonmy that represent at least two levels.
+	Return the first ``xxx`` most abundant.
 	"""
 	abundant = []
 
@@ -224,20 +228,15 @@ def get_most_abundant(abundances, xxx) :
 
 def get_biomarkes(abundant, xxx) :
 	"""
+	Split the taxonomy and then look, level by level, when there are at least ``xxx`` distinct branches.
+	Return the set of branches as biomarkers to highlight.
 	"""
-	bb = []
 	cc = []
 	bk = set()
+	lvl = 0
 
 	for _, t in abundant :
-		bb.append(t)
-
-	bb.sort()
-
-	for b in bb :
-		cc.append(b.split('.'))
-
-	lvl = 0
+		cc.append(t.split('.'))
 
 	while lvl < len(max(cc)) :
 		bk = set()
@@ -252,6 +251,12 @@ def get_biomarkes(abundant, xxx) :
 		lvl += 1
 
 	return bk
+
+def scale_clade_size(minn, maxx, abu, max_abu) :
+	"""
+	Return the value of ``abu`` scaled to ``max_abu`` logarithmically, and then map from ``minn`` to ``maxx``.
+	"""
+	return minn + maxx * log(1. + (abu / max_abu))
 
 
 def main() :
@@ -316,8 +321,8 @@ def main() :
 
 		with open(args.lefse_output, 'r') as out_file :
 			for line in out_file :
-				t, v1, bk, es, pv = line.strip().split('\t')
-				lefse_output[t] = (es, bk, v1, pv)
+				t, m, bk, es, pv = line.strip().split('\t')
+				lefse_output[t] = (es, bk, m, pv)
 
 				# get distinct biomarkers
 				if bk :
@@ -330,12 +335,20 @@ def main() :
 			max_effect_size = max(lst)
 
 		# no lefse_input file provided!
-		if not taxa : # build taxonomy list
+		if (not taxa) and (not abundances) : # build taxonomy list and abundaces map
 			for t in lefse_output :
-				taxa.append(t)
+				_, _, m, _ = lefse_output[t]
+				abundances[t.replace('.', '|')] = float(m)
 
-		if not abundances : # build abundaces map
-			pass
+			max_abundances = max([abundances[x] for x in abundances])
+
+			for t in lefse_output :
+				scaled = scale_clade_size(args.min_clade_size, args.max_clade_size, abundances[t.replace('.', '|')], max_abundances)
+
+				if scaled >= args.abundance_threshold :
+					taxa.append(t)
+
+
 	else : # no lefse_output provided
 		# find the xxx most abundant
 		abundant = get_most_abundant(abundances, args.most_abundant)
@@ -400,7 +413,7 @@ def main() :
 				rgb = scale_color(colors[color[bk]])
 				annot_file.write(''.join(['\t'.join([biom, 'annotation', biom]), '\n']))
 				annot_file.write(''.join(['\t'.join([biom, 'clade_marker_color', rgb]), '\n']))
-				annot_file.write(''.join(['\t'.join([biom, 'clade_marker_size', '45']), '\n']))
+				annot_file.write(''.join(['\t'.join([biom, 'clade_marker_size', '40']), '\n']))
 
 			# write the annotation for the tree
 			for taxonomy in taxa :
@@ -410,7 +423,7 @@ def main() :
 
 				# scaled the size of the clade by the average abundance
 				if taxonomy.replace('.', '|') in abundances :
-					scaled = args.min_clade_size + args.max_clade_size * log(1. + (abundances[taxonomy.replace('.', '|')] / max_abundances))
+					scaled = scale_clade_size(args.min_clade_size, args.max_clade_size, abundances[taxonomy.replace('.', '|')], max_abundances)
 				
 				annot_file.write(''.join(['\t'.join([clean_taxonomy, 'clade_marker_size', str(scaled)]), '\n']))
 
