@@ -288,12 +288,12 @@ def main() :
 	if args.background_colors :
 		col = []
 
-		if get_file_type(args.background_colors) :
+		if get_file_type(args.background_colors) in ['txt'] :
 			with open(args.background_colors, 'r') as f :
 				col = [str(s.strip()) for s in f]
 			pass
 		else : # it's a string in csv format
-			col = [args.background_colors.split(',')]
+			col = [c.strip() for c in args.background_colors.split(',')]
 
 		lst = {}
 		i = 0
@@ -317,9 +317,9 @@ def main() :
 		external_annotations_list = [int(i.strip()) for i in args.external_annotations.strip().split(',')]
 
 	if args.lefse_input :
-		# if the lefse_input is in biom format, convert it
 		biom_file = None
 
+		# if the lefse_input is in biom format, convert it
 		if get_file_type(args.lefse_input) in 'biom' :
 			biom_file = parse_biom(args.lefse_input)
 			args.lefse_input = biom_file
@@ -329,6 +329,7 @@ def main() :
 		abundances = dict(lefse_input.get_averages())
 		max_abundances = max([abundances[x] for x in abundances])
 
+		# remove the temporary biom file
 		if biom_file :
 			remove(biom_file)
 			print biom_file + ' deleted!'
@@ -368,8 +369,6 @@ def main() :
 
 				if scaled >= args.abundance_threshold :
 					taxa.append(t)
-
-
 	else : # no lefse_output provided
 		# find the xxx most abundant
 		abundant = get_most_abundant(abundances, args.most_abundant)
@@ -414,112 +413,110 @@ def main() :
 		max_log_effect_size = max(lst)
 
 	# write the annotation
-	# try :
-	with open(args.annotation, 'w') as annot_file :
-		# set the title
-		if args.title :
-			annot_file.write(''.join(['\t'.join(['title', args.title]), '\n']))
-			annot_file.write(''.join(['\t'.join(['title_font_size', str(args.title_font_size)]), '\n']))
+	try :
+		with open(args.annotation, 'w') as annot_file :
+			# set the title
+			if args.title :
+				annot_file.write(''.join(['\t'.join(['title', args.title]), '\n']))
+				annot_file.write(''.join(['\t'.join(['title_font_size', str(args.title_font_size)]), '\n']))
 
-		# write some basic customizations
-		annot_file.write(''.join(['\t'.join(['clade_separation', '0.5']), '\n']))
-		annot_file.write(''.join(['\t'.join(['branch_bracket_depth', '0.8']), '\n']))
-		annot_file.write(''.join(['\t'.join(['branch_bracket_width', '0.2']), '\n']))
-		annot_file.write(''.join(['\t'.join(['annotation_legend_font_size', str(args.annotation_legend_font_size)]), '\n']))
-		annot_file.write(''.join(['\t'.join(['class_legend_font_size', '10']), '\n']))
-		annot_file.write(''.join(['\t'.join(['class_legend_marker_size', '1.5']), '\n']))
+			# write some basic customizations
+			annot_file.write(''.join(['\t'.join(['clade_separation', '0.5']), '\n']))
+			annot_file.write(''.join(['\t'.join(['branch_bracket_depth', '0.8']), '\n']))
+			annot_file.write(''.join(['\t'.join(['branch_bracket_width', '0.2']), '\n']))
+			annot_file.write(''.join(['\t'.join(['annotation_legend_font_size', str(args.annotation_legend_font_size)]), '\n']))
+			annot_file.write(''.join(['\t'.join(['class_legend_font_size', '10']), '\n']))
+			annot_file.write(''.join(['\t'.join(['class_legend_marker_size', '1.5']), '\n']))
 
-		# write the biomarkers' legend
-		for bk in biomarkers :
-			biom = bk.replace('_', ' ').upper()
-			rgb = scale_color(colors[color[bk]])
-			annot_file.write(''.join(['\t'.join([biom, 'annotation', biom]), '\n']))
-			annot_file.write(''.join(['\t'.join([biom, 'clade_marker_color', rgb]), '\n']))
-			annot_file.write(''.join(['\t'.join([biom, 'clade_marker_size', '40']), '\n']))
+			# write the biomarkers' legend
+			for bk in biomarkers :
+				biom = bk.replace('_', ' ').upper()
+				rgb = scale_color(colors[color[bk]])
+				annot_file.write(''.join(['\t'.join([biom, 'annotation', biom]), '\n']))
+				annot_file.write(''.join(['\t'.join([biom, 'clade_marker_color', rgb]), '\n']))
+				annot_file.write(''.join(['\t'.join([biom, 'clade_marker_size', '40']), '\n']))
 
-		done_clades = []
+			done_clades = []
 
-		# write the annotation for the tree
-		for taxonomy in taxa :
-			level = taxonomy.count('.') + 1 # which level is this taxonomy?
-			clean_taxonomy = taxonomy[taxonomy.rfind('.') + 1:] # retrieve the last level in taxonomy
-			scaled = args.def_clade_size
+			# write the annotation for the tree
+			for taxonomy in taxa :
+				level = taxonomy.count('.') + 1 # which level is this taxonomy?
+				clean_taxonomy = taxonomy[taxonomy.rfind('.') + 1:] # retrieve the last level in taxonomy
+				scaled = args.def_clade_size
 
-			# scaled the size of the clade by the average abundance
-			if taxonomy.replace('.', '|') in abundances :
-				scaled = scale_clade_size(args.min_clade_size, args.max_clade_size, abundances[taxonomy.replace('.', '|')], max_abundances)
-			
-			annot_file.write(''.join(['\t'.join([clean_taxonomy, 'clade_marker_size', str(scaled)]), '\n']))
+				# scaled the size of the clade by the average abundance
+				if taxonomy.replace('.', '|') in abundances :
+					scaled = scale_clade_size(args.min_clade_size, args.max_clade_size, abundances[taxonomy.replace('.', '|')], max_abundances)
+				
+				annot_file.write(''.join(['\t'.join([clean_taxonomy, 'clade_marker_size', str(scaled)]), '\n']))
 
-			# put a bakcground annotation to the levels specified by the user
-			shaded_background = []
+				# put a bakcground annotation to the levels specified by the user
+				shaded_background = []
 
-			for l in background_list :
-				if level >= l :
-					lst = [s.strip() for s in taxonomy.strip().split('.')]
-					t = '.'.join(lst[:l])
+				for l in background_list :
+					if level >= l :
+						lst = [s.strip() for s in taxonomy.strip().split('.')]
+						t = '.'.join(lst[:l])
 
-					if t not in shaded_background :
-						shaded_background.append(t)
+						if t not in shaded_background :
+							shaded_background.append(t)
 
-						font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / l)
+							font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / l)
 
-						annot_file.write(''.join(['\t'.join([t, 'annotation_background_color', args.background_color]), '\n']))
-						annot_file.write(''.join(['\t'.join([t, 'annotation', '*']), '\n']))
-						annot_file.write(''.join(['\t'.join([t, 'annotation_font_size', str(font_size)]), '\n']))
+							annot_file.write(''.join(['\t'.join([t, 'annotation_background_color', args.background_color]), '\n']))
+							annot_file.write(''.join(['\t'.join([t, 'annotation', '*']), '\n']))
+							annot_file.write(''.join(['\t'.join([t, 'annotation_font_size', str(font_size)]), '\n']))
 
-			# put a bakcground annotation to the clades specified by the user
-			for c in background_colors :
-				bg_color = background_colors[c]
+				# put a bakcground annotation to the clades specified by the user
+				for c in background_colors :
+					bg_color = background_colors[c]
 
-				if not bg_color.startswith('#') :
-					h, s, v = bg_color.split(',')
-					bg_color = scale_color((float(h.strip()) , float(s.strip()), float(v.strip())))
+					if not bg_color.startswith('#') :
+						h, s, v = bg_color.split(',')
+						bg_color = scale_color((float(h.strip()) , float(s.strip()), float(v.strip())))
 
-				# check if the taxonomy has more than one level
-				lvls = [str(cc.strip()) for cc in c.split('.')]
+					# check if the taxonomy has more than one level
+					lvls = [str(cc.strip()) for cc in c.split('.')]
 
-				for l in lvls :
-					if (l in taxonomy) and (l not in done_clades) :
-						lvl = taxonomy[:taxonomy.index(l)].count('.') + 1
-						font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / lvl)
-						
+					for l in lvls :
+						if (l in taxonomy) and (l not in done_clades) :
+							lvl = taxonomy[:taxonomy.index(l)].count('.') + 1
+							font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / lvl)
+							
 
-						annot_file.write(''.join(['\t'.join([l, 'annotation_background_color', bg_color]), '\n']))
-						annot_file.write(''.join(['\t'.join([l, 'annotation', '*']), '\n']))
-						annot_file.write(''.join(['\t'.join([l, 'annotation_font_size', str(font_size)]), '\n']))
+							annot_file.write(''.join(['\t'.join([l, 'annotation_background_color', bg_color]), '\n']))
+							annot_file.write(''.join(['\t'.join([l, 'annotation', '*']), '\n']))
+							annot_file.write(''.join(['\t'.join([l, 'annotation_font_size', str(font_size)]), '\n']))
 
-						done_clades.append(l)
+							done_clades.append(l)
 
-			# print done_clades
+				if lefse_output :
+					if taxonomy in lefse_output :
+						es, bk, _, _ = lefse_output[taxonomy]
 
-			if lefse_output :
-				if taxonomy in lefse_output :
-					es, bk, _, _ = lefse_output[taxonomy]
+						# if it is a biomarker then color and label it!
+						if bk :
+							fac = abs(log(float(es) / max_effect_size)) / max_log_effect_size
+							
+							try :
+								rgbs = scale_color(colors[color[bk]], fac)
+							except Exception as e :
+								print e
+								print ' '.join(["[W] Assign to", taxonomy, "the default color:", colors[color[bk]]])
+								rgbs = colors[color[bk]]
 
-					# if it is a biomarker then color and label it!
-					if bk :
-						fac = abs(log(float(es) / max_effect_size)) / max_log_effect_size
-						
-						try :
-							rgbs = scale_color(colors[color[bk]], fac)
-						except Exception as e :
-							print e
-							print ' '.join(["[W] Assign to", taxonomy, "the default color:", colors[color[bk]]])
-							rgbs = colors[color[bk]]
+							annot_file.write(''.join(['\t'.join([clean_taxonomy, 'clade_marker_color', rgbs]), '\n']))
 
-						annot_file.write(''.join(['\t'.join([clean_taxonomy, 'clade_marker_color', rgbs]), '\n']))
+							# write the annotation only if the abundance is above a given threshold
+							if (scaled >= args.abundance_threshold) and ((level in annotations_list) or (level in external_annotations_list)) :
+								font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / level)
+								annotation = '*' if level in annotations_list else '*:*'
 
-						# write the annotation only if the abundance is above a given threshold
-						if (scaled >= args.abundance_threshold) and ((level in annotations_list) or (level in external_annotations_list)) :
-							font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / level)
-							annotation = '*' if level in annotations_list else '*:*'
-
-							annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_background_color', rgbs]), '\n']))
-							annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation', annotation]), '\n']))
-							annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_font_size', str(font_size)]), '\n']))
-	# except Exception as e :
-	# 	print e
+								annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_background_color', rgbs]), '\n']))
+								annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation', annotation]), '\n']))
+								annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_font_size', str(font_size)]), '\n']))
+	except Exception as e :
+		print e
 
 
 if __name__ == '__main__' :
