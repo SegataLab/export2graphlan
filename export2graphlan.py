@@ -196,19 +196,28 @@ def parse_biom(filename) :
 	"""
 	"""
 	biom_table = load_table(filename)
-	strs = biom_table.delimited_self()
+	strs = biom_table.delimited_self(header_value = 'TAXA', header_key = 'taxonomy')
 	lst1 = [s for s in strs.split('\n')]
+	lst1 = lst1[1:] # skip the "# Constructed from biom file" entry
 	biom_file = 'biom_' + str(randrange(999999)) + '.txt'
 
 	with open(biom_file, 'w') as f :
-		f.write('\n'.join([s for s in lst1 if not s.startswith('#')]))
+		for l in lst1 :
+			lst = [s for s in l.split('\t')]
+			lst = lst[1:] # skip the OTU ids
+
+			# Clean an move taxa in first place
+			taxa = '.'.join( [ s.strip().replace('[', '').replace('\'', '').replace(']', '') for s in lst[-1].split(',') ] )
+			lst = [taxa] + lst[:-1]
+
+			f.write('\t'.join(lst))
 
 	return biom_file
 
 
 def get_most_abundant(abundances, xxx) :
 	"""
-	Sort by the abundance level all the taxonmy that represent at least two levels.
+	Sort by the abundance level all the taxonomy that represent at least two levels.
 	Return the first ``xxx`` most abundant.
 	"""
 	abundant = []
