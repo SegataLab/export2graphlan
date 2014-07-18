@@ -5,8 +5,8 @@ from colorsys import hsv_to_rgb
 from math import log
 from hclust2.hclust2 import DataMatrix
 from biom import load_table
-from random import randrange
-from os import remove
+from StringIO import StringIO
+from re import compile
 
 
 __author__ = 'Francesco Asnicar'
@@ -90,12 +90,12 @@ def read_params() :
 		default = None,
 		type = str,
 		required = False,
-		help = "Specify the file that contains clades that should be highlight with a shaded background. Write one clades per row in the file")
+		help = "Specify the clades that should be highlight with a shaded background. Use a comma separate values form and surround the string with \" if it contains spaces. Example: --background_clades \"Bacteria.Actinobacteria, Bacteria.Bacteroidetes.Bacteroidia, Bacteria.Firmicutes.Clostridia.Clostridiales\"")
 	parser.add_argument('--background_colors',
 		default = None,
 		type = str,
 		required = False,
-		help = "Set the color in RGB format to use for the shaded background. Can be either a file (that contains for each row one color) or direct specified as a string (comma-separate-values). Colors can be either in RGB or HSV format")
+		help = "Set the color to use for the shaded background. Colors can be either in RGB or HSV (using a semi-colon to separate values, surrounded with ()) format. Use a comma separate values form and surround the string with \" if it contains spaces. Example: --background_colors \"#29cc36, (150; 100; 100), (280; 80; 88)\"")
 	# title
 	parser.add_argument('--title',
 		type = str,
@@ -194,25 +194,62 @@ def get_file_type(filename) :
 
 def parse_biom(filename) :
 	"""
+	Load a biom table and extract the taxonomy (from metadata), removing the unuseful header.
+	Return the input biom in tab-separated format.
 	"""
 	biom_table = load_table(filename)
 	strs = biom_table.delimited_self(header_value = 'TAXA', header_key = 'taxonomy')
 	lst1 = [s for s in strs.split('\n')]
 	lst1 = lst1[1:] # skip the "# Constructed from biom file" entry
-	biom_file = 'biom_' + str(randrange(999999)) + '.txt'
+	biom_file = []
+	pre_taxa = compile(".__")
+	classs = compile("\(class\)")
 
-	with open(biom_file, 'w') as f :
-		for l in lst1 :
-			lst = [s for s in l.split('\t')]
-			lst = lst[1:] # skip the OTU ids
+	for l in lst1 :
+		lst = [str(s).strip() for s in l.split('\t')[1:]] # skip the OTU ids
 
-			# Clean an move taxa in first place
-			taxa = '.'.join( [ s.strip().replace('[', '').replace('\'', '').replace(']', '') for s in lst[-1].split(',') ] )
-			lst = [taxa] + lst[:-1]
+		# Clean an move taxa in first place
+		taxa = '.'.join([s.strip().replace('[', '').replace('u\'', '').replace(']', '').replace(' ', '').replace('\'', '') for s in lst[-1].split(',')])
+		taxa = pre_taxa.sub('', taxa) # remove '{k|p|o|g|s}__'
+		taxa = classs.sub('', taxa) # remove '(class)'
+		taxa = taxa.rstrip('.') # remove trailing dots
 
-			f.write('\t'.join(lst))
+		biom_file.append([taxa] + lst[:-1])
 
-	return biom_file
+	i = 1
+	dic = {}
+
+	for l in biom_file[i:] :
+		for k in biom_file[i+1:] :
+			if l[0] == k[0] :
+				lst = []
+				j = 1
+
+				while j < len(l) :
+					lst.append(float(l[j]) + float(k[j]))
+					j += 1
+
+				if l[0] in dic :
+					lst1 = dic[l[0]]
+					j = 0
+					lst2 = []
+
+					while j < len(lst1) :
+						lst2.append(float(lst1[j]) + float(lst[j]))
+						j += 1
+
+					lst = lst2
+
+				dic[l[0]] = lst
+
+		i += 1
+
+	out = ['\t'.join(biom_file[0])]
+
+	for k in dic :
+		out.append('\t'.join([str(s) for s in [k] + dic[k]]))
+
+	return '\n'.join(out)
 
 
 def get_most_abundant(abundances, xxx) :
@@ -225,9 +262,10 @@ def get_most_abundant(abundances, xxx) :
 	for a in abundances :
 		if a.count('|') > 0 :
 			abundant.append((float(abundances[a]), a.replace('|', '.')))
+		elif a.count('.') > 0 :
+			abundant.append((float(abundances[a]), a))
 
 	abundant.sort(reverse = True)
-
 	return abundant[:xxx]
 
 
@@ -290,8 +328,11 @@ def main() :
 
 	# get the background_clades
 	if args.background_clades :
-		with open(args.background_clades, 'r') as f:
-			background_clades = [str(s.strip()) for s in f]
+		if get_file_type(args.background_colors) in ['txt'] :
+			with open(args.background_clades, 'r') as f:
+				background_clades = [str(s.strip()) for s in f]
+		else : # it's a string in csv format
+			background_clades = [str(s.strip()) for s in args.background_clades.split(',')]
 
 	# read the set of colors to use for the background_clades
 	if args.background_colors :
@@ -300,7 +341,6 @@ def main() :
 		if get_file_type(args.background_colors) in ['txt'] :
 			with open(args.background_colors, 'r') as f :
 				col = [str(s.strip()) for s in f]
-			pass
 		else : # it's a string in csv format
 			col = [c.strip() for c in args.background_colors.split(',')]
 
@@ -326,22 +366,16 @@ def main() :
 		external_annotations_list = [int(i.strip()) for i in args.external_annotations.strip().split(',')]
 
 	if args.lefse_input :
-		biom_file = None
-
 		# if the lefse_input is in biom format, convert it
 		if get_file_type(args.lefse_input) in 'biom' :
-			biom_file = parse_biom(args.lefse_input)
-			args.lefse_input = biom_file
+			biom = parse_biom(args.lefse_input)
+			lefse_input = DataMatrix(StringIO(biom), args)
+		else :
+			lefse_input = DataMatrix(args.lefse_input, args)
 		
-		lefse_input = DataMatrix(args.lefse_input, args)
 		taxa = [t.replace('|', '.') for t in lefse_input.get_fnames()] # build taxonomy list
 		abundances = dict(lefse_input.get_averages())
 		max_abundances = max([abundances[x] for x in abundances])
-
-		# remove the temporary biom file
-		if biom_file :
-			remove(biom_file)
-			print biom_file + ' deleted!'
 
 	if args.lefse_output :
 		# if the lefse_output is in biom format... I don't think it's possible!
@@ -481,7 +515,8 @@ def main() :
 					bg_color = background_colors[c]
 
 					if not bg_color.startswith('#') :
-						h, s, v = bg_color.split(',')
+						bg_color = bg_color.replace('(', '').replace(')', '')
+						h, s, v = bg_color.split(';')
 						bg_color = scale_color((float(h.strip()) , float(s.strip()), float(v.strip())))
 
 					# check if the taxonomy has more than one level
