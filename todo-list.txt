@@ -1,6 +1,6 @@
 * biom input file: need to be thoroughly tested
 
-* galaxy integration
+* galaxy integration (George)
 
 * tutorial export2graphlan figures
 	* https://bitbucket.org/nsegata/graphlan/wiki/export2graphlan
