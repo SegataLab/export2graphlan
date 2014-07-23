@@ -1,12 +1,33 @@
 # PREREQUISITES #
-You need to have export2graphlan.py and GraPhlAn installed and exported in you Bash PATH variable.
-export2graphlan.py requires the following additional packages:
+
+**export2graphlan** requires the following additional libraries:
 
 * BIOM ver. 2.0.1 ([biom-format](http://biom-format.org))
 
 # INSTALLATION #
 
-TBA
+**export2graphlan** is available in Bitbucket and should be obtained using [Mercurial](http://mercurial.selenic.com/) at https://bitbucket.org/francesco-asnicar/export2graphlan.
+
+In a Unix environment you have to type:
+```
+#!bash
+
+$ hg clone ssh://bitbucket.org/francesco-asnicar/export2graphlan
+```
+or, alternatively:
+```
+#!bash
+
+$ hg clone https://bitbucket.org/francesco-asnicar/export2graphlan
+```
+
+This will download the **export2graphlan** repository locally in the ``export2graphlan`` subfolder. You then have to put this subfolder into the system path, so that you can use **export2graphlan** from anywhere in your system:
+```
+#!bash
+
+$ export PATH=`pwd`/export2graphlan/:$PATH
+```
+Adding the above line into the bash configuration file will make the path addition permanent. For Windows or MacOS systems a similar procedure should be followed.
 
 # USAGE #
 TBA
@@ -14,7 +35,6 @@ TBA
 # EXAMPLES #
 There are an *examples* folder that contains the following examples: *hmp_aerobiosis*.
 Examples should work just by typing in a terminal shell (provided that you are inside one of the example folder) the following command:
-
 ```
 #!bash
 
