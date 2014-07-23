@@ -1,3 +1,5 @@
+**export2graphlan** is a conversion software tool for producing both annotation and tree file for GraPhlAn. In particular, the annotation file tries to highlight specific sub-trees deriving automatically from input file what nodes are important. The two output file of **export2graphlan** should then be used to run ``graphlan_annotate.py``, in order to attach to the tree the derived annotations, and finally, by executing ``graphlan.py`` the user can get the output image.
+
 # PREREQUISITES #
 
 **export2graphlan** requires the following additional libraries:
