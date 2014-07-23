@@ -4,6 +4,10 @@ export2graphlan.py requires the following additional packages:
 
 * BIOM ver. 2.0.1 ([biom-format](http://biom-format.org))
 
+# INSTALLATION #
+
+TBA
+
 # USAGE #
 TBA
 
@@ -14,7 +18,7 @@ Examples should work just by typing in a terminal shell (provided that you are i
 ```
 #!bash
 
-./PIPELINE.sh
+$ ./PIPELINE.sh
 ```
 
 If everything goes well you should find in the same folder of the example six new files: *annot.txt*, *outimg.png*, *outimg_annot.png*, *outimg_legend.png*, *outtree.txt*, and *tree.txt*. Where:
