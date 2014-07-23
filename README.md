@@ -35,7 +35,7 @@ Adding the above line into the bash configuration file will make the path additi
 TBA
 
 # EXAMPLES #
-The ``examples`` folder that contains the following examples: ``hmp_aerobiosis``, ``hmp_metahit_metabolic``, and ``hmp_metahit_mp2``.
+The ``examples`` folder contains the following sub-folders: ``hmp_aerobiosis``, ``hmp_metahit_metabolic``, and ``hmp_metahit_mp2``.
 Each example should work just by typing in a terminal window (provided that you are inside one of the example folder) the following command:
 ```
 #!bash
