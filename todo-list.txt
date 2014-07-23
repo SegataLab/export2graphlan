@@ -2,7 +2,4 @@
 
 * galaxy integration (George)
 
-* tutorial export2graphlan figures
-	* https://bitbucket.org/nsegata/graphlan/wiki/export2graphlan
-
 * define a tree-structure for the taxonomy in order to: (1) optimized the variables managements; (2) write as output tree only the path fron root to leaf since GraPhlAn can derived the tree from a composite path;
