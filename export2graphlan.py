@@ -205,6 +205,14 @@ def parse_biom(filename) :
 	pre_taxa = compile(".__")
 	classs = compile("\(class\)")
 
+	# consistency check
+	i = 0
+	while i < (len(lst1) - 1) :
+		if len([s for s in lst1[i].split('\t')]) != len([s for s in lst1[i+1].split('\t')]) :
+			raise Exception('[parse_biom()] Not all rows have the same length, maybe is the wrong biom file?')
+
+		i += 1
+
 	for l in lst1 :
 		lst = [str(s).strip() for s in l.split('\t')[1:]] # skip the OTU ids
 
@@ -216,6 +224,7 @@ def parse_biom(filename) :
 
 		biom_file.append([taxa] + lst[:-1])
 
+	# merge such rows that have the same taxa
 	i = 1
 	dic = {}
 
@@ -244,8 +253,10 @@ def parse_biom(filename) :
 
 		i += 1
 
+	# header
 	out = ['\t'.join(biom_file[0])]
 
+	# the tab-separated table
 	for k in dic :
 		out.append('\t'.join([str(s) for s in [k] + dic[k]]))
 
@@ -321,6 +332,7 @@ def main() :
 	background_colors = {}
 	annotations_list = []
 	external_annotations_list = []
+	exceptt = False
 
 	# get the levels that should be shaded
 	if args.background_levels :
@@ -368,14 +380,19 @@ def main() :
 	if args.lefse_input :
 		# if the lefse_input is in biom format, convert it
 		if get_file_type(args.lefse_input) in 'biom' :
-			biom = parse_biom(args.lefse_input)
-			lefse_input = DataMatrix(StringIO(biom), args)
+			try :
+				biom = parse_biom(args.lefse_input)
+				lefse_input = DataMatrix(StringIO(biom), args)
+			except Exception as e :
+				exceptt = True
+				print e
 		else :
 			lefse_input = DataMatrix(args.lefse_input, args)
 		
-		taxa = [t.replace('|', '.') for t in lefse_input.get_fnames()] # build taxonomy list
-		abundances = dict(lefse_input.get_averages())
-		max_abundances = max([abundances[x] for x in abundances])
+		if not exceptt :
+			taxa = [t.replace('|', '.') for t in lefse_input.get_fnames()] # build taxonomy list
+			abundances = dict(lefse_input.get_averages())
+			max_abundances = max([abundances[x] for x in abundances])
 
 	if args.lefse_output :
 		# if the lefse_output is in biom format... I don't think it's possible!
@@ -412,7 +429,7 @@ def main() :
 
 				if scaled >= args.abundance_threshold :
 					taxa.append(t)
-	else : # no lefse_output provided
+	elif not exceptt : # no lefse_output provided and lefse_input correctly red
 		# find the xxx most abundant
 		abundant = get_most_abundant(abundances, args.most_abundant)
 
@@ -430,6 +447,9 @@ def main() :
 			lefse_output[t] = (2., b, '', '')
 
 		max_effect_size = 1. # It's not gonna working
+	else : # no lefse_output and no lefse_input provided
+		print "You must provide at least one input file!"
+		exit(1)
 
 	# write the tree
 	with open(args.tree, 'w') as tree_file :
