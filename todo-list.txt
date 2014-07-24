@@ -1,6 +1,3 @@
-* biom input file: need to be thoroughly tested
-	* raise an exception if the biom file does not contains taxonomy (~/Desktop/biom\ examples/biom_files/sample_otu.biom)
-
 * galaxy integration (George)
 
 * define a tree-structure for the taxonomy in order to: (1) optimized the variables managements; (2) write as output tree only the path fron root to leaf since GraPhlAn can derived the tree from a composite path;
