@@ -1,4 +1,5 @@
 * biom input file: need to be thoroughly tested
+	* raise an exception if the biom file does not contains taxonomy (~/Desktop/biom\ examples/biom_files/sample_otu.biom)
 
 * galaxy integration (George)
 
