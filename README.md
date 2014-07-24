@@ -32,8 +32,7 @@ $ export PATH=`pwd`/export2graphlan/:$PATH
 Adding the above line into the bash configuration file will make the path addition permanent. For Windows or MacOS systems a similar procedure should be followed.
 
 # USAGE #
-```
-#!bash
+``
 usage: export2graphlan.py [-h] [-i LEFSE_INPUT] [-o LEFSE_OUTPUT] -t TREE -a
                           ANNOTATION [--annotations ANNOTATIONS]
                           [--external_annotations EXTERNAL_ANNOTATIONS]
@@ -168,7 +167,7 @@ Input data matrix parameters:
                         percentile specified by --fperc)
   --def_na DEF_NA       Set the default value for missing values [default None
                         which means no replacement]
-```
+``
 
 *Note*: the last input parameters refer to the **DataMatrix** class contained in the [hclust2](https://bitbucket.org/nsegata/hclust2/overview) repository.
 
