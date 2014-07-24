@@ -32,7 +32,145 @@ $ export PATH=`pwd`/export2graphlan/:$PATH
 Adding the above line into the bash configuration file will make the path addition permanent. For Windows or MacOS systems a similar procedure should be followed.
 
 # USAGE #
-TBA
+```
+#!bash
+usage: export2graphlan.py [-h] [-i LEFSE_INPUT] [-o LEFSE_OUTPUT] -t TREE -a
+                          ANNOTATION [--annotations ANNOTATIONS]
+                          [--external_annotations EXTERNAL_ANNOTATIONS]
+                          [--background_levels BACKGROUND_LEVELS]
+                          [--background_clades BACKGROUND_CLADES]
+                          [--background_colors BACKGROUND_COLORS]
+                          [--title TITLE] [--title_font_size TITLE_FONT_SIZE]
+                          [--def_clade_size DEF_CLADE_SIZE]
+                          [--min_clade_size MIN_CLADE_SIZE]
+                          [--max_clade_size MAX_CLADE_SIZE]
+                          [--def_font_size DEF_FONT_SIZE]
+                          [--min_font_size MIN_FONT_SIZE]
+                          [--max_font_size MAX_FONT_SIZE]
+                          [--annotation_legend_font_size ANNOTATION_LEGEND_FONT_SIZE]
+                          [--abundance_threshold ABUNDANCE_THRESHOLD]
+                          [--most_abundant MOST_ABUNDANT]
+                          [--least_biomarkers LEAST_BIOMARKERS] [--sep SEP]
+                          [--out_table OUT_TABLE] [--fname_row FNAME_ROW]
+                          [--sname_row SNAME_ROW]
+                          [--metadata_rows METADATA_ROWS]
+                          [--skip_rows SKIP_ROWS] [--sperc SPERC]
+                          [--fperc FPERC] [--stop STOP] [--ftop FTOP]
+                          [--def_na DEF_NA]
+
+export2graphlan.py (ver. 0.10 of 11th July 2014). Convert MetaPhlAn, LEfSe,
+and/or HUMAnN output to GraPhlAn input format. Authors: Francesco Asnicar
+(francesco.asnicar@gmail.com)
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --annotations ANNOTATIONS
+                        List which levels should be annotated in the tree. Use
+                        a comma separate values form, e.g.,
+                        --annotation_levels 1,2,3. Default is None
+  --external_annotations EXTERNAL_ANNOTATIONS
+                        List which levels should use the external legend for
+                        the annotation. Use a comma separate values form,
+                        e.g., --annotation_levels 1,2,3. Default is None
+  --background_levels BACKGROUND_LEVELS
+                        List which levels should be highlight with a shaded
+                        background. Use a comma separate values form, e.g.,
+                        --background_levels 1,2,3
+  --background_clades BACKGROUND_CLADES
+                        Specify the clades that should be highlight with a
+                        shaded background. Use a comma separate values form
+                        and surround the string with " if it contains spaces.
+                        Example: --background_clades "Bacteria.Actinobacteria,
+                        Bacteria.Bacteroidetes.Bacteroidia,
+                        Bacteria.Firmicutes.Clostridia.Clostridiales"
+  --background_colors BACKGROUND_COLORS
+                        Set the color to use for the shaded background. Colors
+                        can be either in RGB or HSV (using a semi-colon to
+                        separate values, surrounded with ()) format. Use a
+                        comma separate values form and surround the string
+                        with " if it contains spaces. Example:
+                        --background_colors "#29cc36, (150; 100; 100), (280;
+                        80; 88)"
+  --title TITLE         If specified set the title of the GraPhlAn plot.
+                        Surround the string with " if it contains spaces,
+                        e.g., --title "Title example"
+  --title_font_size TITLE_FONT_SIZE
+                        Set the title font size. Default is 15
+  --def_clade_size DEF_CLADE_SIZE
+                        Set a default size for clades that are not found as
+                        biomarkers by LEfSe. Default is 10
+  --min_clade_size MIN_CLADE_SIZE
+                        Set the minimum value of clades that are biomarkers.
+                        Default is 20
+  --max_clade_size MAX_CLADE_SIZE
+                        Set the maximum value of clades that are biomarkers.
+                        Default is 200
+  --def_font_size DEF_FONT_SIZE
+                        Set a default font size. Default is 10
+  --min_font_size MIN_FONT_SIZE
+                        Set the minimum font size to use. Default is 8
+  --max_font_size MAX_FONT_SIZE
+                        Set the maximum font size. Default is 12
+  --annotation_legend_font_size ANNOTATION_LEGEND_FONT_SIZE
+                        Set the font size for the annotation legend. Default
+                        is 10
+  --abundance_threshold ABUNDANCE_THRESHOLD
+                        Set the minimun abundace value for a clade to be
+                        annotated. Default is 20.0
+  --most_abundant MOST_ABUNDANT
+                        When only lefse_input is provided, you can specify how
+                        many clades highlight. Since the biomarkers are
+                        missing, they will be chosen from the most abundant
+  --least_biomarkers LEAST_BIOMARKERS
+                        When only lefse_input is provided, you can specify the
+                        minimum number of biomarkers extract. The taxonomy is
+                        parsed, and the level is choosen in order to have at
+                        least the specified number of biomarkers
+
+input parameters:
+  You need to provide at least one of the two arguments
+
+  -i LEFSE_INPUT, --lefse_input LEFSE_INPUT
+                        LEfSe input data
+  -o LEFSE_OUTPUT, --lefse_output LEFSE_OUTPUT
+                        LEfSe output result data
+
+output parameters:
+  -t TREE, --tree TREE  Output filename where save the input tree for GraPhlAn
+  -a ANNOTATION, --annotation ANNOTATION
+                        Output filename where save GraPhlAn annotation
+
+Input data matrix parameters:
+  --sep SEP
+  --out_table OUT_TABLE
+                        Write processed data matrix to file
+  --fname_row FNAME_ROW
+                        row number containing the names of the features
+                        [default 0, specify -1 if no names are present in the
+                        matrix
+  --sname_row SNAME_ROW
+                        column number containing the names of the samples
+                        [default 0, specify -1 if no names are present in the
+                        matrix
+  --metadata_rows METADATA_ROWS
+                        Row numbers to use as metadata[default None, meaning
+                        no metadata
+  --skip_rows SKIP_ROWS
+                        Row numbers to skip (0-indexed, comma separated) from
+                        the input file[default None, meaning no rows skipped
+  --sperc SPERC         Percentile of sample value distribution for sample
+                        selection
+  --fperc FPERC         Percentile of feature value distribution for sample
+                        selection
+  --stop STOP           Number of top samples to select (ordering based on
+                        percentile specified by --sperc)
+  --ftop FTOP           Number of top features to select (ordering based on
+                        percentile specified by --fperc)
+  --def_na DEF_NA       Set the default value for missing values [default None
+                        which means no replacement]
+```
+
+*Note*: the last input parameters refer to the **DataMatrix** class contained in the [hclust2](https://bitbucket.org/nsegata/hclust2/overview) repository.
 
 # EXAMPLES #
 The ``examples`` folder contains the following sub-folders: ``hmp_aerobiosis``, ``hmp_metahit_metabolic``, and ``hmp_metahit_mp2``.
