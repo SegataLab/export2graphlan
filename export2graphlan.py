@@ -332,7 +332,8 @@ def main() :
 	background_colors = {}
 	annotations_list = []
 	external_annotations_list = []
-	exceptt = False
+	lin = False
+	lout = False
 
 	# get the levels that should be shaded
 	if args.background_levels :
@@ -384,52 +385,57 @@ def main() :
 				biom = parse_biom(args.lefse_input)
 				lefse_input = DataMatrix(StringIO(biom), args)
 			except Exception as e :
-				exceptt = True
+				lin = True
 				print e
 		else :
 			lefse_input = DataMatrix(args.lefse_input, args)
 		
-		if not exceptt :
+		if not lin :
 			taxa = [t.replace('|', '.') for t in lefse_input.get_fnames()] # build taxonomy list
 			abundances = dict(lefse_input.get_averages())
 			max_abundances = max([abundances[x] for x in abundances])
+	else : # no lefse_input provided
+		lin = True
 
 	if args.lefse_output :
 		# if the lefse_output is in biom format... I don't think it's possible!
 		if get_file_type(args.lefse_output) in 'biom' :
-			print "Really??"
+			lout = True
+			print "Seriously?? LEfSe output file is not expected to be in biom format!"
+		else :
+			lst = []
 
-		lst = []
+			with open(args.lefse_output, 'r') as out_file :
+				for line in out_file :
+					t, m, bk, es, pv = line.strip().split('\t')
+					lefse_output[t] = (es, bk, m, pv)
 
-		with open(args.lefse_output, 'r') as out_file :
-			for line in out_file :
-				t, m, bk, es, pv = line.strip().split('\t')
-				lefse_output[t] = (es, bk, m, pv)
+					# get distinct biomarkers
+					if bk :
+						biomarkers |= set([bk])
 
-				# get distinct biomarkers
-				if bk :
-					biomarkers |= set([bk])
+					# get all effect size
+					if es :
+						lst.append(float(es))
 
-				# get all effect size
-				if es :
-					lst.append(float(es))
+				max_effect_size = max(lst)
 
-			max_effect_size = max(lst)
+			# no lefse_input file provided!
+			if (not taxa) and (not abundances) : # build taxonomy list and abundaces map
+				for t in lefse_output :
+					_, _, m, _ = lefse_output[t]
+					abundances[t.replace('.', '|')] = float(m)
 
-		# no lefse_input file provided!
-		if (not taxa) and (not abundances) : # build taxonomy list and abundaces map
-			for t in lefse_output :
-				_, _, m, _ = lefse_output[t]
-				abundances[t.replace('.', '|')] = float(m)
+				max_abundances = max([abundances[x] for x in abundances])
 
-			max_abundances = max([abundances[x] for x in abundances])
+				for t in lefse_output :
+					scaled = scale_clade_size(args.min_clade_size, args.max_clade_size, abundances[t.replace('.', '|')], max_abundances)
 
-			for t in lefse_output :
-				scaled = scale_clade_size(args.min_clade_size, args.max_clade_size, abundances[t.replace('.', '|')], max_abundances)
-
-				if scaled >= args.abundance_threshold :
-					taxa.append(t)
-	elif not exceptt : # no lefse_output provided and lefse_input correctly red
+					if scaled >= args.abundance_threshold :
+						taxa.append(t)
+	elif not lin : # no lefse_output provided and lefse_input correctly red
+		lout = True
+		
 		# find the xxx most abundant
 		abundant = get_most_abundant(abundances, args.most_abundant)
 
@@ -447,7 +453,10 @@ def main() :
 			lefse_output[t] = (2., b, '', '')
 
 		max_effect_size = 1. # It's not gonna working
-	else : # no lefse_output and no lefse_input provided
+	
+
+	# no lefse_output and no lefse_input provided
+	if lin and lout :
 		print "You must provide at least one input file!"
 		exit(1)
 
