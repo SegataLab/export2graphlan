@@ -172,7 +172,7 @@ Input data matrix parameters:
                         which means no replacement]
 ```
 
-*Note*: the last input parameters (*Input data matrix parameters*) refer to the **DataMatrix** class contained in the [hclust2](https://bitbucket.org/nsegata/hclust2/overview) repository.
+*Note*: the last input parameters (``Input data matrix parameters``) refer to the **DataMatrix** class contained in the [hclust2](https://bitbucket.org/nsegata/hclust2/overview) repository.
 
 # EXAMPLES #
 The ``examples`` folder contains the following sub-folders: ``hmp_aerobiosis``, ``hmp_metahit_metabolic``, and ``hmp_metahit_mp2``.
