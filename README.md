@@ -50,15 +50,15 @@ usage: export2graphlan.py [-h] [-i LEFSE_INPUT] [-o LEFSE_OUTPUT] -t TREE -a
                           [--annotation_legend_font_size ANNOTATION_LEGEND_FONT_SIZE]
                           [--abundance_threshold ABUNDANCE_THRESHOLD]
                           [--most_abundant MOST_ABUNDANT]
-                          [--least_biomarkers LEAST_BIOMARKERS] [--sep SEP]
-                          [--out_table OUT_TABLE] [--fname_row FNAME_ROW]
-                          [--sname_row SNAME_ROW]
+                          [--least_biomarkers LEAST_BIOMARKERS]
+                          [--discard_otus] [--sep SEP] [--out_table OUT_TABLE]
+                          [--fname_row FNAME_ROW] [--sname_row SNAME_ROW]
                           [--metadata_rows METADATA_ROWS]
                           [--skip_rows SKIP_ROWS] [--sperc SPERC]
                           [--fperc FPERC] [--stop STOP] [--ftop FTOP]
                           [--def_na DEF_NA]
 
-export2graphlan.py (ver. 0.10 of 11th July 2014). Convert MetaPhlAn, LEfSe,
+export2graphlan.py (ver. 0.13 of 29th July 2014). Convert MetaPhlAn, LEfSe,
 and/or HUMAnN output to GraPhlAn input format. Authors: Francesco Asnicar
 (francesco.asnicar@gmail.com)
 
@@ -126,6 +126,8 @@ optional arguments:
                         minimum number of biomarkers extract. The taxonomy is
                         parsed, and the level is choosen in order to have at
                         least the specified number of biomarkers
+  --discard_otus        If specified the OTU ids will be discarde from the
+                        taxonmy. Default behavior keep OTU ids in taxonomy
 
 input parameters:
   You need to provide at least one of the two arguments
@@ -170,7 +172,7 @@ Input data matrix parameters:
                         which means no replacement]
 ```
 
-*Note*: the last input parameters refer to the **DataMatrix** class contained in the [hclust2](https://bitbucket.org/nsegata/hclust2/overview) repository.
+*Note*: the last input parameters (*Input data matrix parameters*) refer to the **DataMatrix** class contained in the [hclust2](https://bitbucket.org/nsegata/hclust2/overview) repository.
 
 # EXAMPLES #
 The ``examples`` folder contains the following sub-folders: ``hmp_aerobiosis``, ``hmp_metahit_metabolic``, and ``hmp_metahit_mp2``.
