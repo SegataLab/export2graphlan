@@ -3,165 +3,170 @@
 from argparse import ArgumentParser
 from colorsys import hsv_to_rgb
 from math import log
-from hclust2.hclust2 import DataMatrix
-from biom import load_table
 from StringIO import StringIO
 from re import compile
+from hclust2.hclust2 import DataMatrix
 
 
 __author__ = 'Francesco Asnicar'
 __email__ = "francesco.asnicar@gmail.com"
-__version__ = '0.10'
-__date__ = '11th July 2014'
+__version__ = '0.13'
+__date__ = '29th July 2014'
 
 
-def scale_color((h, s, v), factor = 1.) :
+def scale_color((h, s, v), factor=1.):
 	"""
 	Takes as input a tuple that represents a color in HSV format, and optionally a scale factor.
 	Return an RGB string that is the converted HSV color, scaled by the given factor.
 	"""
-	if (h < 0.) or (h > 360.) :
-		raise Exception(' '.join(['[scale_color()] Hue value out of range (0, 360):', str(h)]))
+	if (h < 0.) or (h > 360.):
+		raise Exception('[scale_color()] Hue value out of range (0, 360): ' + str(h))
 	
-	if (s < 0.) or (s > 100.) :
-		raise Exception(' '.join(['[scale_color()] Saturation value out of range (0, 100):', str(s)]))
+	if (s < 0.) or (s > 100.):
+		raise Exception('[scale_color()] Saturation value out of range (0, 100): ' + str(s))
 
-	if (v < 0.) or (v > 100.) :
-		raise Exception(' '.join(['[scale_color()] Value value out of range (0, 100):', str(v)]))
+	if (v < 0.) or (v > 100.):
+		raise Exception('[scale_color()] Value value out of range (0, 100): ' + str(v))
 
-	if (factor < 0.) or (factor > 1.) :
-		raise Exception(' '.join(['[scale_color()] Factor value out of range (0.0, 1.0):', str(factor)]))
+	if (factor < 0.) or (factor > 1.):
+		raise Exception('[scale_color()] Factor value out of range (0.0, 1.0): ' + str(factor))
 
 	v *= factor
-	r, g, b = hsv_to_rgb(h / 360., s / 100., v / 100.)
-	return '#{0:02x}{1:02x}{2:02x}'.format(int(round(r * 255.)), int(round(g * 255.)), int(round(b * 255.)))
+	r, g, b = hsv_to_rgb(h/360., s/100., v/100.)
+
+	return '#{0:02x}{1:02x}{2:02x}'.format(int(round(r*255.)), int(round(g*255.)), int(round(b*255.)))
 
 
-def read_params() :
+def read_params():
 	"""
 	Parse the input parameters, performing some validity check.
 	Return the parsed arguments.
 	"""
-	parser = ArgumentParser(description =  "export2graphlan.py (ver. " + __version__ +
+	parser = ArgumentParser(description="export2graphlan.py (ver. " + __version__ +
 		" of " + __date__ + "). Convert MetaPhlAn, LEfSe, and/or HUMAnN output to GraPhlAn input format. Authors: "
 		+ __author__ + " (" + __email__ + ")")
 	
 	# input parameters group
-	group = parser.add_argument_group(title = 'input parameters',
-		description = "You need to provide at least one of the two arguments")
+	group = parser.add_argument_group(title='input parameters',
+		description="You need to provide at least one of the two arguments")
 	group.add_argument('-i', '--lefse_input',
-		type = str,
-		required = False,
-		help = "LEfSe input data")
+		type=str,
+		required=False,
+		help="LEfSe input data")
 	group.add_argument('-o', '--lefse_output',
-		type = str,
-		required = False,
-		help = "LEfSe output result data")
+		type=str,
+		required=False,
+		help="LEfSe output result data")
 
 	# output parameters group
-	group = parser.add_argument_group(title = 'output parameters')
+	group = parser.add_argument_group(title='output parameters')
 	group.add_argument('-t', '--tree',
-		type = str,
-		required = True,
-		help = "Output filename where save the input tree for GraPhlAn")
+		type=str,
+		required=True,
+		help="Output filename where save the input tree for GraPhlAn")
 	group.add_argument('-a', '--annotation',
-		type = str,
-		required = True,
-		help = "Output filename where save GraPhlAn annotation")
+		type=str,
+		required=True,
+		help="Output filename where save GraPhlAn annotation")
 
 	# annotations
 	parser.add_argument('--annotations',
-		default = None,
-		type = str,
-		required = False,
-		help = "List which levels should be annotated in the tree. Use a comma separate values form, e.g., --annotation_levels 1,2,3. Default is None")
+		default=None,
+		type=str,
+		required=False,
+		help="List which levels should be annotated in the tree. Use a comma separate values form, e.g., --annotation_levels 1,2,3. Default is None")
 	parser.add_argument('--external_annotations',
-		default = None,
-		type = str,
-		required = False,
-		help = "List which levels should use the external legend for the annotation. Use a comma separate values form, e.g., --annotation_levels 1,2,3. Default is None")
+		default=None,
+		type=str,
+		required=False,
+		help="List which levels should use the external legend for the annotation. Use a comma separate values form, e.g., --annotation_levels 1,2,3. Default is None")
 	# shaded background
 	parser.add_argument('--background_levels',
-		default = None,
-		type = str,
-		required = False,
-		help = "List which levels should be highlight with a shaded background. Use a comma separate values form, e.g., --background_levels 1,2,3")
+		default=None,
+		type=str,
+		required=False,
+		help="List which levels should be highlight with a shaded background. Use a comma separate values form, e.g., --background_levels 1,2,3")
 	parser.add_argument('--background_clades',
-		default = None,
-		type = str,
-		required = False,
-		help = "Specify the clades that should be highlight with a shaded background. Use a comma separate values form and surround the string with \" if it contains spaces. Example: --background_clades \"Bacteria.Actinobacteria, Bacteria.Bacteroidetes.Bacteroidia, Bacteria.Firmicutes.Clostridia.Clostridiales\"")
+		default=None,
+		type=str,
+		required=False,
+		help="Specify the clades that should be highlight with a shaded background. Use a comma separate values form and surround the string with \" if it contains spaces. Example: --background_clades \"Bacteria.Actinobacteria, Bacteria.Bacteroidetes.Bacteroidia, Bacteria.Firmicutes.Clostridia.Clostridiales\"")
 	parser.add_argument('--background_colors',
-		default = None,
-		type = str,
-		required = False,
-		help = "Set the color to use for the shaded background. Colors can be either in RGB or HSV (using a semi-colon to separate values, surrounded with ()) format. Use a comma separate values form and surround the string with \" if it contains spaces. Example: --background_colors \"#29cc36, (150; 100; 100), (280; 80; 88)\"")
+		default=None,
+		type=str,
+		required=False,
+		help="Set the color to use for the shaded background. Colors can be either in RGB or HSV (using a semi-colon to separate values, surrounded with ()) format. Use a comma separate values form and surround the string with \" if it contains spaces. Example: --background_colors \"#29cc36, (150; 100; 100), (280; 80; 88)\"")
 	# title
 	parser.add_argument('--title',
-		type = str,
-		required = False,
-		help = "If specified set the title of the GraPhlAn plot. Surround the string with \" if it contains spaces, e.g., --title \"Title example\"")
+		type=str,
+		required=False,
+		help="If specified set the title of the GraPhlAn plot. Surround the string with \" if it contains spaces, e.g., --title \"Title example\"")
 	# title font size
 	parser.add_argument('--title_font_size',
-		default = 15,
-		type = int,
-		required = False,
-		help = "Set the title font size. Default is 15")
+		default=15,
+		type=int,
+		required=False,
+		help="Set the title font size. Default is 15")
 	# clade size
 	parser.add_argument('--def_clade_size',
-		default = 10.,
-		type = float,
-		required = False,
-		help = "Set a default size for clades that are not found as biomarkers by LEfSe. Default is 10")
+		default=10.,
+		type=float,
+		required=False,
+		help="Set a default size for clades that are not found as biomarkers by LEfSe. Default is 10")
 	parser.add_argument('--min_clade_size',
-		default = 20.,
-		type = float,
-		required = False,
-		help = "Set the minimum value of clades that are biomarkers. Default is 20")
+		default=20.,
+		type=float,
+		required=False,
+		help="Set the minimum value of clades that are biomarkers. Default is 20")
 	parser.add_argument('--max_clade_size',
-		default = 200.,
-		type = float,
-		required = False,
-		help = "Set the maximum value of clades that are biomarkers. Default is 200")
+		default=200.,
+		type=float,
+		required=False,
+		help="Set the maximum value of clades that are biomarkers. Default is 200")
 	# font size
 	parser.add_argument('--def_font_size',
-		default = 10,
-		type = int,
-		required = False,
-		help = "Set a default font size. Default is 10")
+		default=10,
+		type=int,
+		required=False,
+		help="Set a default font size. Default is 10")
 	parser.add_argument('--min_font_size',
-		default = 8,
-		type = int,
-		required = False,
-		help = "Set the minimum font size to use. Default is 8")
+		default=8,
+		type=int,
+		required=False,
+		help="Set the minimum font size to use. Default is 8")
 	parser.add_argument('--max_font_size',
-		default = 12,
-		type = int,
-		required = False,
-		help = "Set the maximum font size. Default is 12")
+		default=12,
+		type=int,
+		required=False,
+		help="Set the maximum font size. Default is 12")
 	# legend font size
 	parser.add_argument('--annotation_legend_font_size',
-		default = 10,
-		type = int,
-		required = False,
-		help = "Set the font size for the annotation legend. Default is 10")
+		default=10,
+		type=int,
+		required=False,
+		help="Set the font size for the annotation legend. Default is 10")
 	# abundance threshold
 	parser.add_argument('--abundance_threshold',
-		default = 20.,
-		type = float,
-		required = False,
-		help = "Set the minimun abundace value for a clade to be annotated. Default is 20.0")
+		default=20.,
+		type=float,
+		required=False,
+		help="Set the minimun abundace value for a clade to be annotated. Default is 20.0")
 	# ONLY lefse_input provided
 	parser.add_argument('--most_abundant',
-		default = 10,
-		type = int,
-		required = False,
-		help = "When only lefse_input is provided, you can specify how many clades highlight. Since the biomarkers are missing, they will be chosen from the most abundant")
+		default=10,
+		type=int,
+		required=False,
+		help="When only lefse_input is provided, you can specify how many clades highlight. Since the biomarkers are missing, they will be chosen from the most abundant")
 	parser.add_argument('--least_biomarkers',
-		default = 3,
-		type = int,
-		required = False,
-		help = "When only lefse_input is provided, you can specify the minimum number of biomarkers extract. The taxonomy is parsed, and the level is choosen in order to have at least the specified number of biomarkers")
+		default=3,
+		type=int,
+		required=False,
+		help="When only lefse_input is provided, you can specify the minimum number of biomarkers extract. The taxonomy is parsed, and the level is choosen in order to have at least the specified number of biomarkers")
+	# decide to keep the OTU id or to merger at the above taxonomic level
+	parser.add_argument('--discard_otus',
+		default=True,
+		action='store_false',
+		help="If specified the OTU ids will be discarde from the taxonmy. Default behavior keep OTU ids in taxonomy")
 
 	DataMatrix.input_parameters(parser)
 	args = parser.parse_args()
@@ -185,36 +190,42 @@ def read_params() :
 	return args
 
 
-def get_file_type(filename) :
+def get_file_type(filename):
 	"""
 	Return the extension (if any) of the ``filename`` in lower case.
 	"""
-	return filename[filename.rfind('.') + 1:].lower()
+	return filename[filename.rfind('.')+1:].lower()
 
 
-def parse_biom(filename) :
+def parse_biom(filename, keep_otus=True):
 	"""
 	Load a biom table and extract the taxonomy (from metadata), removing the unuseful header.
 	Return the input biom in tab-separated format.
 	"""
+	from biom import load_table # avoid to ask for the BIOM library if there is no biom file
+
 	biom_table = load_table(filename)
-	strs = biom_table.delimited_self(header_value = 'TAXA', header_key = 'taxonomy')
-	lst1 = [s for s in strs.split('\n')]
-	lst1 = lst1[1:] # skip the "# Constructed from biom file" entry
+	strs = biom_table.delimited_self(header_value='TAXA', header_key='taxonomy')
+	lst1 = [str(s) for s in strs.split('\n')[1:]] # skip the "# Constructed from biom file" entry
 	biom_file = []
+	out = [lst1[0]] # save the header
 	pre_taxa = compile(".__")
 	classs = compile("\(class\)")
 
 	# consistency check
 	i = 0
-	while i < (len(lst1) - 1) :
+	while i < (len(lst1)-1):
 		if len([s for s in lst1[i].split('\t')]) != len([s for s in lst1[i+1].split('\t')]) :
-			raise Exception('[parse_biom()] Not all rows have the same length, maybe is the wrong biom file?')
+			raise Exception('[parse_biom()] It seems that taxonomic metadata are missing, maybe is the wrong biom file?')
 
 		i += 1
 
-	for l in lst1 :
-		lst = [str(s).strip() for s in l.split('\t')[1:]] # skip the OTU ids
+	for l in lst1[1:]:
+		otu = None
+		lst = [str(s).strip() for s in l.split('\t')[1:]]
+
+		if keep_otus:
+			otu = lst[0]
 
 		# Clean an move taxa in first place
 		taxa = '.'.join([s.strip().replace('[', '').replace('u\'', '').replace(']', '').replace(' ', '').replace('\'', '') for s in lst[-1].split(',')])
@@ -222,48 +233,50 @@ def parse_biom(filename) :
 		taxa = classs.sub('', taxa) # remove '(class)'
 		taxa = taxa.rstrip('.') # remove trailing dots
 
-		biom_file.append([taxa] + lst[:-1])
+		if otu:
+			taxa = taxa + '.' + otu
+
+		biom_file.append([taxa] + lst[1:-1])
 
 	# merge such rows that have the same taxa
 	i = 1
 	dic = {}
 
-	for l in biom_file[i:] :
-		for k in biom_file[i+1:] :
-			if l[0] == k[0] :
+	for l in biom_file[i:]:
+		for k in biom_file[i+1:]:
+			if l[0] == k[0]:
 				lst = []
 				j = 1
 
-				while j < len(l) :
+				while j < len(l):
 					lst.append(float(l[j]) + float(k[j]))
 					j += 1
 
-				if l[0] in dic :
+				if l[0] in dic:
 					lst1 = dic[l[0]]
 					j = 0
 					lst2 = []
 
-					while j < len(lst1) :
+					while j < len(lst1):
 						lst2.append(float(lst1[j]) + float(lst[j]))
 						j += 1
 
 					lst = lst2
 
 				dic[l[0]] = lst
+		# if not in dic, add it!
+		if l[0] not in dic:
+			dic[l[0]] = l[1:]
 
 		i += 1
 
-	# header
-	out = ['\t'.join(biom_file[0])]
-
-	# the tab-separated table
-	for k in dic :
+	for k in dic:
 		out.append('\t'.join([str(s) for s in [k] + dic[k]]))
-
+	
 	return '\n'.join(out)
 
 
-def get_most_abundant(abundances, xxx) :
+def get_most_abundant(abundances, xxx):
 	"""
 	Sort by the abundance level all the taxonomy that represent at least two levels.
 	Return the first ``xxx`` most abundant.
@@ -271,16 +284,16 @@ def get_most_abundant(abundances, xxx) :
 	abundant = []
 
 	for a in abundances :
-		if a.count('|') > 0 :
+		if a.count('|') > 0:
 			abundant.append((float(abundances[a]), a.replace('|', '.')))
-		elif a.count('.') > 0 :
+		elif a.count('.') > 0:
 			abundant.append((float(abundances[a]), a))
 
-	abundant.sort(reverse = True)
+	abundant.sort(reverse=True)
 	return abundant[:xxx]
 
 
-def get_biomarkes(abundant, xxx) :
+def get_biomarkes(abundant, xxx):
 	"""
 	Split the taxonomy and then look, level by level, when there are at least ``xxx`` distinct branches.
 	Return the set of branches as biomarkers to highlight.
@@ -289,31 +302,31 @@ def get_biomarkes(abundant, xxx) :
 	bk = set()
 	lvl = 0
 
-	for _, t in abundant :
+	for _, t in abundant:
 		cc.append(t.split('.'))
 
-	while lvl < len(max(cc)) :
+	while lvl < len(max(cc)):
 		bk = set()
 
-		for c in cc :
-			if lvl < len(c) :
+		for c in cc:
+			if lvl < len(c):
 				bk |= set([c[lvl]])
 
-		if len(bk) >= xxx :
+		if len(bk) >= xxx:
 			break
 
 		lvl += 1
 
 	return bk
 
-def scale_clade_size(minn, maxx, abu, max_abu) :
+def scale_clade_size(minn, maxx, abu, max_abu):
 	"""
 	Return the value of ``abu`` scaled to ``max_abu`` logarithmically, and then map from ``minn`` to ``maxx``.
 	"""
-	return minn + maxx * log(1. + (abu / max_abu))
+	return minn + maxx*log(1. + (abu/max_abu))
 
 
-def main() :
+def main():
 	"""
 	"""
 	colors = [(245., 90., 100.), (125., 80., 80.), (0., 80., 100.), (195., 100., 100.), (150., 100., 100.), (55., 100., 100.), (280., 80., 88.)] # HSV format
@@ -382,7 +395,7 @@ def main() :
 		# if the lefse_input is in biom format, convert it
 		if get_file_type(args.lefse_input) in 'biom' :
 			try :
-				biom = parse_biom(args.lefse_input)
+				biom = parse_biom(args.lefse_input, args.discard_otus)
 				lefse_input = DataMatrix(StringIO(biom), args)
 			except Exception as e :
 				lin = True
