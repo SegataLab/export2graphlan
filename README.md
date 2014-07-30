@@ -2,7 +2,7 @@
 
 # PREREQUISITES #
 
-**export2graphlan** requires the following additional libraries:
+**export2graphlan** requires the following additional library only if you have file in BIOM format:
 
 * BIOM ver. 2.0.1 ([biom-format](http://biom-format.org))
 
