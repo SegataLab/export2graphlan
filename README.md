@@ -8,7 +8,7 @@
 
 # INSTALLATION #
 
-**export2graphlan** should be obtained using [Mercurial](http://mercurial.selenic.com/) and is available in Bitbucket at https://bitbucket.org/CibioCM/export2graphlan.
+**export2graphlan** should be obtained using [Mercurial](http://mercurial.selenic.com/) and is available in Bitbucket here: [export2graphlan repository](https://bitbucket.org/CibioCM/export2graphlan).
 
 In a Unix environment you have to type:
 ```
