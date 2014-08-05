@@ -14,13 +14,13 @@ In a Unix environment you have to type:
 ```
 #!bash
 
-$ hg clone ssh://bitbucket.org/francesco-asnicar/export2graphlan
+$ hg clone ssh://hg@bitbucket.org/CibioCM/export2graphlan
 ```
 or, alternatively:
 ```
 #!bash
 
-$ hg clone https://bitbucket.org/francesco-asnicar/export2graphlan
+$ hg clone https://hg@bitbucket.org/CibioCM/export2graphlan
 ```
 
 This will download the **export2graphlan** repository locally in the ``export2graphlan`` subfolder. You then have to put this subfolder into the system path, so that you can use **export2graphlan** from anywhere in your system:
