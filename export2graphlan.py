@@ -161,7 +161,7 @@ def read_params():
 		default=3,
 		type=int,
 		required=False,
-		help="When only lefse_input is provided, you can specify the minimum number of biomarkers extract. The taxonomy is parsed, and the level is choosen in order to have at least the specified number of biomarkers")
+		help="When only lefse_input is provided, you can specify the minimum number of biomarkers to extract. The taxonomy is parsed, and the level is choosen in order to have at least the specified number of biomarkers")
 	# decide to keep the OTU id or to merger at the above taxonomic level
 	parser.add_argument('--discard_otus',
 		default=True,
@@ -222,13 +222,13 @@ def parse_biom(filename, keep_otus=True):
 
 	for l in lst1[1:]:
 		otu = None
-		lst = [str(s).strip() for s in l.split('\t')[1:]]
+		lst = [str(s).strip() for s in l.split('\t')[1:-1]]
 
 		if keep_otus:
-			otu = lst[0]
+			otu = l.split('\t')[0]
 
 		# Clean an move taxa in first place
-		taxa = '.'.join([s.strip().replace('[', '').replace('u\'', '').replace(']', '').replace(' ', '').replace('\'', '') for s in lst[-1].split(',')])
+		taxa = '.'.join([s.strip().replace('[', '').replace('u\'', '').replace(']', '').replace(' ', '').replace('\'', '') for s in l.split('\t')[-1].split(',')])
 		taxa = pre_taxa.sub('', taxa) # remove '{k|p|o|g|s}__'
 		taxa = classs.sub('', taxa) # remove '(class)'
 		taxa = taxa.rstrip('.') # remove trailing dots
@@ -236,7 +236,7 @@ def parse_biom(filename, keep_otus=True):
 		if otu:
 			taxa = taxa + '.' + otu
 
-		biom_file.append([taxa] + lst[1:-1])
+		biom_file.append([taxa] + lst)
 
 	# merge such rows that have the same taxa
 	i = 1
@@ -452,7 +452,7 @@ def main():
 		# find the xxx most abundant
 		abundant = get_most_abundant(abundances, args.most_abundant)
 
-		# find the highest deeper different taxonomy level with yyy distinct values from the xxx most abundant
+		# find the taxonomy level with at least yyy distinct childs from the xxx most abundant
 		biomarkers = get_biomarkes(abundant, args.least_biomarkers)
 
 		# compose lefse_output variable
@@ -593,7 +593,7 @@ def main():
 
 							annot_file.write(''.join(['\t'.join([clean_taxonomy, 'clade_marker_color', rgbs]), '\n']))
 
-							# write the annotation only if the abundance is above a given threshold
+							# write the annotation only if the abundance is above a given threshold and it is either internal or external annotation lists
 							if (scaled >= args.abundance_threshold) and ((level in annotations_list) or (level in external_annotations_list)) :
 								font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / level)
 								annotation = '*' if level in annotations_list else '*:*'
