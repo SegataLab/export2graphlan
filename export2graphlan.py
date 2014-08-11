@@ -222,7 +222,7 @@ def parse_biom(filename, keep_otus=True):
 
 	for l in lst1[1:]:
 		otu = None
-		lst = [str(s).strip() for s in l.split('\t')[1:-1]]
+		lst = [float(s.strip()) for s in l.split('\t')[1:-1]]
 
 		if keep_otus:
 			otu = l.split('\t')[0]
@@ -243,37 +243,56 @@ def parse_biom(filename, keep_otus=True):
 	dic = {}
 
 	for l in biom_file[i:]:
-		for k in biom_file[i+1:]:
-			if l[0] == k[0]:
-				lst = []
-				j = 1
-
-				while j < len(l):
-					lst.append(float(l[j]) + float(k[j]))
-					j += 1
-
-				if l[0] in dic:
-					lst1 = dic[l[0]]
-					j = 0
-					lst2 = []
-
-					while j < len(lst1):
-						lst2.append(float(lst1[j]) + float(lst[j]))
-						j += 1
-
-					lst = lst2
-
-				dic[l[0]] = lst
-		# if not in dic, add it!
 		if l[0] not in dic:
 			dic[l[0]] = l[1:]
 
+			for k in biom_file[i+1:]:
+				if l[0] == k[0]:
+					lst = []
+					lstdic = dic[l[0]]
+					j = 1
+					while j < len(lstdic):
+						lst.append(float(lstdic[j]) + float(k[j]))
+						j += 1
+
+					dic[l[0]] = lst
 		i += 1
 
-	for k in dic:
-		out.append('\t'.join([str(s) for s in [k] + dic[k]]))
+	feats = dict(dic)
+	feats = add_missing_levels(feats)
+
+	for k in feats:
+		out.append('\t'.join([str(s) for s in [k] + feats[k]]))
 	
 	return '\n'.join(out)
+
+
+def add_missing_levels(ff):
+	"""
+	"""
+	if sum([f.count(".") for f in ff]) < 1:
+		return ff
+
+	clades2leaves = {}
+	for f in ff:
+		fs = f.split(".")
+
+		if len(fs) < 2:
+			continue
+
+		for l in range(1, len(fs)+1):
+			n = ".".join(fs[:l])
+			
+			if n in clades2leaves:
+				clades2leaves[n].append(f)
+			else:
+				clades2leaves[n] = [f]
+
+	ret = {}
+	for k in clades2leaves:
+		ret[k] = [sum([sum(ff[e]) for e in clades2leaves[k]])]
+
+	return ret
 
 
 def get_most_abundant(abundances, xxx):
@@ -329,7 +348,8 @@ def scale_clade_size(minn, maxx, abu, max_abu):
 def main():
 	"""
 	"""
-	colors = [(245., 90., 100.), (125., 80., 80.), (0., 80., 100.), (195., 100., 100.), (150., 100., 100.), (55., 100., 100.), (280., 80., 88.)] # HSV format
+	colors = [(245., 90., 100.), (125., 80., 80.), (0., 80., 100.), (195., 100., 100.),
+              (150., 100., 100.), (55., 100., 100.), (280., 80., 88.)] # HSV format
 	args = read_params()
 	lefse_input = None
 	lefse_output = {}
@@ -404,7 +424,7 @@ def main():
 			lefse_input = DataMatrix(args.lefse_input, args)
 		
 		if not lin :
-			taxa = [t.replace('|', '.') for t in lefse_input.get_fnames()] # build taxonomy list
+			taxa = [t.replace('|', '.').strip() for t in lefse_input.get_fnames()] # build taxonomy list
 			abundances = dict(lefse_input.get_averages())
 			max_abundances = max([abundances[x] for x in abundances])
 	else : # no lefse_input provided
@@ -466,17 +486,14 @@ def main():
 			lefse_output[t] = (2., b, '', '')
 
 		max_effect_size = 1. # It's not gonna working
-	
-
 	# no lefse_output and no lefse_input provided
 	if lin and lout :
 		print "You must provide at least one input file!"
 		exit(1)
 
 	# write the tree
-	with open(args.tree, 'w') as tree_file :
-		for taxonomy in taxa :
-			tree_file.write(''.join([taxonomy, '\n']))
+	with open(args.tree, 'w') as tree_file:
+		tree_file.write('\n'.join(taxa))
 
 	# for each biomarker assign it to a different color
 	i = 0
@@ -521,18 +538,21 @@ def main():
 				annot_file.write(''.join(['\t'.join([biom, 'clade_marker_color', rgb]), '\n']))
 				annot_file.write(''.join(['\t'.join([biom, 'clade_marker_size', '40']), '\n']))
 
-			done_clades = []
-
-			# write the annotation for the tree
-			for taxonomy in taxa :
+			# write the annotation for the tree			
+			for taxonomy in taxa:
 				level = taxonomy.count('.') + 1 # which level is this taxonomy?
 				clean_taxonomy = taxonomy[taxonomy.rfind('.') + 1:] # retrieve the last level in taxonomy
 				scaled = args.def_clade_size
 
 				# scaled the size of the clade by the average abundance
-				if taxonomy.replace('.', '|') in abundances :
-					scaled = scale_clade_size(args.min_clade_size, args.max_clade_size, abundances[taxonomy.replace('.', '|')], max_abundances)
-				
+				if (taxonomy in abundances) or (taxonomy.replace('.', '|') in abundances):
+					try:
+						abu = abundances[taxonomy.replace('.', '|')]
+					except:
+						abu = abundances[taxonomy]
+
+					scaled = scale_clade_size(args.min_clade_size, args.max_clade_size, abu, max_abundances)
+
 				annot_file.write(''.join(['\t'.join([clean_taxonomy, 'clade_marker_size', str(scaled)]), '\n']))
 
 				# put a bakcground annotation to the levels specified by the user
@@ -563,12 +583,12 @@ def main():
 
 					# check if the taxonomy has more than one level
 					lvls = [str(cc.strip()) for cc in c.split('.')]
+					done_clades = []
 
 					for l in lvls :
 						if (l in taxonomy) and (l not in done_clades) :
 							lvl = taxonomy[:taxonomy.index(l)].count('.') + 1
 							font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / lvl)
-							
 
 							annot_file.write(''.join(['\t'.join([l, 'annotation_background_color', bg_color]), '\n']))
 							annot_file.write(''.join(['\t'.join([l, 'annotation', '*']), '\n']))
@@ -583,7 +603,7 @@ def main():
 						# if it is a biomarker then color and label it!
 						if bk :
 							fac = abs(log(float(es) / max_effect_size)) / max_log_effect_size
-							
+
 							try :
 								rgbs = scale_color(colors[color[bk]], fac)
 							except Exception as e :
@@ -607,3 +627,4 @@ def main():
 
 if __name__ == '__main__' :
 	main()
+
