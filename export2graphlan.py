@@ -167,6 +167,11 @@ def read_params():
 		default=True,
 		action='store_false',
 		help="If specified the OTU ids will be discarde from the taxonmy. Default behavior keep OTU ids in taxonomy")
+	# decide to keep the OTU id or to merger at the above taxonomic level
+	parser.add_argument('--internal_levels',
+		default=False,
+		action='store_true',
+		help="If specified sum-up from leaf to root the abundances values. Default behavior do not sum-up abundances on the internal nodes")
 
 	DataMatrix.input_parameters(parser)
 	args = parser.parse_args()
@@ -197,7 +202,7 @@ def get_file_type(filename):
 	return filename[filename.rfind('.')+1:].lower()
 
 
-def parse_biom(filename, keep_otus=True):
+def parse_biom(filename, keep_otus=True, internal_levels=False):
 	"""
 	Load a biom table and extract the taxonomy (from metadata), removing the unuseful header.
 	Return the input biom in tab-separated format.
@@ -259,7 +264,9 @@ def parse_biom(filename, keep_otus=True):
 		i += 1
 
 	feats = dict(dic)
-	feats = add_missing_levels(feats)
+	
+	if internal_levels:
+		feats = add_missing_levels(feats)
 
 	for k in feats:
 		out.append('\t'.join([str(s) for s in [k] + feats[k]]))
@@ -269,6 +276,7 @@ def parse_biom(filename, keep_otus=True):
 
 def add_missing_levels(ff):
 	"""
+	Sum-up the internal abundances from leaf to root
 	"""
 	if sum([f.count(".") for f in ff]) < 1:
 		return ff
@@ -413,9 +421,9 @@ def main():
 
 	if args.lefse_input :
 		# if the lefse_input is in biom format, convert it
-		if get_file_type(args.lefse_input) in 'biom' :
+		if get_file_type(args.lefse_input) in 'biom':
 			try :
-				biom = parse_biom(args.lefse_input, args.discard_otus)
+				biom = parse_biom(args.lefse_input, args.discard_otus, args.internal_levels)
 				lefse_input = DataMatrix(StringIO(biom), args)
 			except Exception as e :
 				lin = True
@@ -432,7 +440,7 @@ def main():
 
 	if args.lefse_output :
 		# if the lefse_output is in biom format... I don't think it's possible!
-		if get_file_type(args.lefse_output) in 'biom' :
+		if get_file_type(args.lefse_output) in 'biom':
 			lout = True
 			print "Seriously?? LEfSe output file is not expected to be in biom format!"
 		else :
