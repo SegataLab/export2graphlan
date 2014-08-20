@@ -232,7 +232,7 @@ def parse_biom(filename, keep_otus=True, internal_levels=False):
 		if keep_otus:
 			otu = l.split('\t')[0]
 
-		# Clean an move taxa in first place
+		# Clean and move taxa in first place
 		taxa = '.'.join([s.strip().replace('[', '').replace('u\'', '').replace(']', '').replace(' ', '').replace('\'', '') for s in l.split('\t')[-1].split(',')])
 		taxa = pre_taxa.sub('', taxa) # remove '{k|p|o|g|s}__'
 		taxa = classs.sub('', taxa) # remove '(class)'
@@ -274,7 +274,7 @@ def parse_biom(filename, keep_otus=True, internal_levels=False):
 	return '\n'.join(out)
 
 
-def add_missing_levels(ff):
+def add_missing_levels(ff, summ=True):
 	"""
 	Sum-up the internal abundances from leaf to root
 	"""
@@ -298,7 +298,23 @@ def add_missing_levels(ff):
 
 	ret = {}
 	for k in clades2leaves:
-		ret[k] = [sum([sum(ff[e]) for e in clades2leaves[k]])]
+		if summ:
+			ret[k] = [sum([sum(ff[e]) for e in clades2leaves[k]])]
+		else:
+			lst = []
+			for e in clades2leaves[k]:
+				if not lst:
+					for i in ff[e]:
+						lst.append(i)
+				else:
+					lst1 = []
+					i = 0
+					while i < len(lst):
+						lst1.append(lst[i] + ff[e][i])
+						i += 1
+					lst = lst1
+
+			ret[k] = lst
 
 	return ret
 
@@ -422,14 +438,31 @@ def main():
 	if args.lefse_input :
 		# if the lefse_input is in biom format, convert it
 		if get_file_type(args.lefse_input) in 'biom':
-			try :
+			try:
 				biom = parse_biom(args.lefse_input, args.discard_otus, args.internal_levels)
 				lefse_input = DataMatrix(StringIO(biom), args)
-			except Exception as e :
+			except Exception as e:
 				lin = True
 				print e
-		else :
-			lefse_input = DataMatrix(args.lefse_input, args)
+		else:
+			if args.internal_levels:
+				aaa = {}
+				header = None
+				with open(args.lefse_input, 'r') as f:
+					for r in f:
+						if header is None:
+							header = [s.strip() for s in r.split('\t')]
+						else:
+							row = r.split('\t')
+							aaa[row[0].strip().replace('|', '.')] = [float(s.strip()) for s in row[1:]]
+
+				feats = add_missing_levels(aaa, summ=False)
+				ss = '\t'.join(header)
+				ss += '\n'
+				ss += '\n'.join(['\t'.join([str(s) for s in [k] + feats[k]]) for k in feats])
+				lefse_input = DataMatrix(StringIO(ss), args)
+			else:
+				lefse_input = DataMatrix(args.lefse_input, args)
 		
 		if not lin :
 			taxa = [t.replace('|', '.').strip() for t in lefse_input.get_fnames()] # build taxonomy list
@@ -527,29 +560,30 @@ def main():
 		with open(args.annotation, 'w') as annot_file :
 			# set the title
 			if args.title :
-				annot_file.write(''.join(['\t'.join(['title', args.title]), '\n']))
-				annot_file.write(''.join(['\t'.join(['title_font_size', str(args.title_font_size)]), '\n']))
+				annot_file.write('\n'.join(['\t'.join(['title', args.title]),
+				                            '\t'.join(['title_font_size', str(args.title_font_size)]), '\n']))
 
 			# write some basic customizations
-			annot_file.write(''.join(['\t'.join(['clade_separation', '0.5']), '\n']))
-			annot_file.write(''.join(['\t'.join(['branch_bracket_depth', '0.8']), '\n']))
-			annot_file.write(''.join(['\t'.join(['branch_bracket_width', '0.2']), '\n']))
-			annot_file.write(''.join(['\t'.join(['annotation_legend_font_size', str(args.annotation_legend_font_size)]), '\n']))
-			annot_file.write(''.join(['\t'.join(['class_legend_font_size', '10']), '\n']))
-			annot_file.write(''.join(['\t'.join(['class_legend_marker_size', '1.5']), '\n']))
+			annot_file.write('\n'.join(['\t'.join(['clade_separation', '0.5']),
+			                            '\t'.join(['branch_bracket_depth', '0.8']),
+			                            '\t'.join(['branch_bracket_width', '0.2']),
+			                            '\t'.join(['annotation_legend_font_size', str(args.annotation_legend_font_size)]),
+			                            '\t'.join(['class_legend_font_size', '10']),
+			                            '\t'.join(['class_legend_marker_size', '1.5']), '\n']))
 
 			# write the biomarkers' legend
 			for bk in biomarkers :
 				biom = bk.replace('_', ' ').upper()
 				rgb = scale_color(colors[color[bk]])
-				annot_file.write(''.join(['\t'.join([biom, 'annotation', biom]), '\n']))
-				annot_file.write(''.join(['\t'.join([biom, 'clade_marker_color', rgb]), '\n']))
-				annot_file.write(''.join(['\t'.join([biom, 'clade_marker_size', '40']), '\n']))
+				annot_file.write('\n'.join(['\t'.join([biom, 'annotation', biom]),
+				                            '\t'.join([biom, 'clade_marker_color', rgb]),
+				                            '\t'.join([biom, 'clade_marker_size', '40']), '\n']))
 
 			# write the annotation for the tree			
 			for taxonomy in taxa:
 				level = taxonomy.count('.') + 1 # which level is this taxonomy?
 				clean_taxonomy = taxonomy[taxonomy.rfind('.') + 1:] # retrieve the last level in taxonomy
+				cleanest_taxonomy = clean_taxonomy.replace('_', ' ') # substitute '_' with ' '
 				scaled = args.def_clade_size
 
 				# scaled the size of the clade by the average abundance
@@ -576,9 +610,9 @@ def main():
 
 							font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / l)
 
-							annot_file.write(''.join(['\t'.join([t, 'annotation_background_color', args.background_color]), '\n']))
-							annot_file.write(''.join(['\t'.join([t, 'annotation', '*']), '\n']))
-							annot_file.write(''.join(['\t'.join([t, 'annotation_font_size', str(font_size)]), '\n']))
+							annot_file.write('\n'.join(['\t'.join([t, 'annotation_background_color', args.background_color]),
+							                            '\t'.join([t, 'annotation', t.replace('_', ' ')]),
+							                            '\t'.join([t, 'annotation_font_size', str(font_size)]), '\n']))
 
 				# put a bakcground annotation to the clades specified by the user
 				for c in background_colors :
@@ -598,9 +632,9 @@ def main():
 							lvl = taxonomy[:taxonomy.index(l)].count('.') + 1
 							font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / lvl)
 
-							annot_file.write(''.join(['\t'.join([l, 'annotation_background_color', bg_color]), '\n']))
-							annot_file.write(''.join(['\t'.join([l, 'annotation', '*']), '\n']))
-							annot_file.write(''.join(['\t'.join([l, 'annotation_font_size', str(font_size)]), '\n']))
+							annot_file.write('\n'.join(['\t'.join([l, 'annotation_background_color', bg_color]),
+							                            '\t'.join([l, 'annotation', l.replace('_', ' ')]),
+							                            '\t'.join([l, 'annotation_font_size', str(font_size)]), '\n']))
 
 							done_clades.append(l)
 
@@ -624,11 +658,11 @@ def main():
 							# write the annotation only if the abundance is above a given threshold and it is either internal or external annotation lists
 							if (scaled >= args.abundance_threshold) and ((level in annotations_list) or (level in external_annotations_list)) :
 								font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / level)
-								annotation = '*' if level in annotations_list else '*:*'
+								annotation = cleanest_taxonomy if level in annotations_list else '*:' + cleanest_taxonomy
 
-								annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_background_color', rgbs]), '\n']))
-								annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation', annotation]), '\n']))
-								annot_file.write(''.join(['\t'.join([clean_taxonomy, 'annotation_font_size', str(font_size)]), '\n']))
+								annot_file.write('\n'.join(['\t'.join([clean_taxonomy, 'annotation_background_color', rgbs]),
+								                            '\t'.join([clean_taxonomy, 'annotation', annotation]),
+								                            '\t'.join([clean_taxonomy, 'annotation_font_size', str(font_size)]), '\n']))
 	except Exception as e :
 		print e
 
