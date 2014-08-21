@@ -10,8 +10,8 @@ from hclust2.hclust2 import DataMatrix
 
 __author__ = 'Francesco Asnicar'
 __email__ = "francesco.asnicar@gmail.com"
-__version__ = '0.13'
-__date__ = '29th July 2014'
+__version__ = '0.17'
+__date__ = '21th August 2014'
 
 
 def scale_color((h, s, v), factor=1.):
