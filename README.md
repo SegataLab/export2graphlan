@@ -35,6 +35,7 @@ Adding the above line into the bash configuration file will make the path additi
 ```
 #!
 usage: export2graphlan.py [-h] [-i LEFSE_INPUT] [-o LEFSE_OUTPUT] -t TREE -a
+usage: export2graphlan.py [-h] [-i LEFSE_INPUT] [-o LEFSE_OUTPUT] -t TREE -a
                           ANNOTATION [--annotations ANNOTATIONS]
                           [--external_annotations EXTERNAL_ANNOTATIONS]
                           [--background_levels BACKGROUND_LEVELS]
@@ -51,14 +52,15 @@ usage: export2graphlan.py [-h] [-i LEFSE_INPUT] [-o LEFSE_OUTPUT] -t TREE -a
                           [--abundance_threshold ABUNDANCE_THRESHOLD]
                           [--most_abundant MOST_ABUNDANT]
                           [--least_biomarkers LEAST_BIOMARKERS]
-                          [--discard_otus] [--sep SEP] [--out_table OUT_TABLE]
-                          [--fname_row FNAME_ROW] [--sname_row SNAME_ROW]
+                          [--discard_otus] [--internal_levels] [--sep SEP]
+                          [--out_table OUT_TABLE] [--fname_row FNAME_ROW]
+                          [--sname_row SNAME_ROW]
                           [--metadata_rows METADATA_ROWS]
                           [--skip_rows SKIP_ROWS] [--sperc SPERC]
                           [--fperc FPERC] [--stop STOP] [--ftop FTOP]
                           [--def_na DEF_NA]
 
-export2graphlan.py (ver. 0.13 of 29th July 2014). Convert MetaPhlAn, LEfSe,
+export2graphlan.py (ver. 0.17 of 21th August 2014). Convert MetaPhlAn, LEfSe,
 and/or HUMAnN output to GraPhlAn input format. Authors: Francesco Asnicar
 (francesco.asnicar@gmail.com)
 
@@ -123,11 +125,14 @@ optional arguments:
                         missing, they will be chosen from the most abundant
   --least_biomarkers LEAST_BIOMARKERS
                         When only lefse_input is provided, you can specify the
-                        minimum number of biomarkers extract. The taxonomy is
-                        parsed, and the level is choosen in order to have at
-                        least the specified number of biomarkers
+                        minimum number of biomarkers to extract. The taxonomy
+                        is parsed, and the level is choosen in order to have
+                        at least the specified number of biomarkers
   --discard_otus        If specified the OTU ids will be discarde from the
                         taxonmy. Default behavior keep OTU ids in taxonomy
+  --internal_levels     If specified sum-up from leaf to root the abundances
+                        values. Default behavior do not sum-up abundances on
+                        the internal nodes
 
 input parameters:
   You need to provide at least one of the two arguments
