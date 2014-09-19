@@ -2,7 +2,7 @@
 
 from argparse import ArgumentParser
 from colorsys import hsv_to_rgb
-from math import log
+from math import log10
 from StringIO import StringIO
 from re import compile
 from hclust2.hclust2 import DataMatrix
@@ -381,7 +381,7 @@ def scale_clade_size(minn, maxx, abu, max_abu):
     """
     Return the value of ``abu`` scaled to ``max_abu`` logarithmically, and then map from ``minn`` to ``maxx``.
     """
-    return minn + maxx*log(1. + (abu/max_abu))
+    return minn + maxx * log10(1. + 9. * (abu/max_abu))
 
 
 def main():
