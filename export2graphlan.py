@@ -567,7 +567,7 @@ def main():
             es, _, _, _ = lefse_output[t]
 
             if es:
-                lst.append(abs(log(float(es) / max_effect_size)))
+                lst.append(abs(log10(float(es) / max_effect_size)))
 
         max_log_effect_size = max(lst)
 
@@ -660,7 +660,7 @@ def main():
 
                         # if it is a biomarker then color and label it!
                         if bk:
-                            fac = abs(log(float(es) / max_effect_size)) / max_log_effect_size
+                            fac = abs(log10(float(es) / max_effect_size)) / max_log_effect_size
 
                             try:
                                 rgbs = scale_color(colors[color[bk]], fac)
