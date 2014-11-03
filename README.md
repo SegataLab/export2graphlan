@@ -2,9 +2,10 @@
 
 # PREREQUISITES #
 
-**export2graphlan** requires the following additional library only if you have files in BIOM format:
+**export2graphlan** requires the following additional library:
 
-* BIOM ver. 2.0.1 ([biom-format](http://biom-format.org))
+* pandas ver. 0.13.1 ([pandas](http://pandas.pydata.org/index.html))
+* BIOM ver. 2.0.1 ([biom-format](http://biom-format.org),  only if you have input files in BIOM format)
 
 # INSTALLATION #
 
