@@ -381,7 +381,7 @@ def scale_clade_size(minn, maxx, abu, max_abu):
     """
     Return the value of ``abu`` scaled to ``max_abu`` logarithmically, and then map from ``minn`` to ``maxx``.
     """
-    return minn + maxx * log10(1. + 9. * (abu/max_abu))
+    return minn + (maxx-minn) * log10(1. + 9. * (abu/max_abu))
 
 
 def main():
@@ -522,7 +522,7 @@ def main():
                                               abundances[t.replace('.', '|')], max_abundances)
 
                     if scaled >= args.abundance_threshold:
-                        taxa.append(t)
+                        taxa.append(t.replace('|', '.').strip())
     elif not lin: # no lefse_output provided and lefse_input correctly red
         lout = True
 
@@ -626,7 +626,7 @@ def main():
 
                             font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / l)
 
-                            annot_file.write('\n'.join(['\t'.join([t, 'annotation_background_color', args.background_color]),
+                            annot_file.write('\n'.join(['\t'.join([t, 'annotation_background_color', scale_color(colors[0])]),
                                                         '\t'.join([t, 'annotation', t.replace('_', ' ')]),
                                                         '\t'.join([t, 'annotation_font_size', str(font_size)]), '\n']))
 
@@ -660,7 +660,8 @@ def main():
 
                         # if it is a biomarker then color and label it!
                         if bk:
-                            fac = abs(log10(float(es) / max_effect_size)) / max_log_effect_size
+                            #fac = abs(log10(float(es) / max_effect_size)) / max_log_effect_size
+                            fac = log10(1. + 9. * (float(es) / max_effect_size))
 
                             try:
                                 rgbs = scale_color(colors[color[bk]], fac)
