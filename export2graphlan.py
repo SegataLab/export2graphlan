@@ -14,6 +14,9 @@ __version__ = '0.17'
 __date__ = '21th August 2014'
 
 
+pre_taxa = compile(".__")
+
+
 def scale_color((h, s, v), factor=1.):
     """
     Takes as input a tuple that represents a color in HSV format, and optionally a scale factor.
@@ -228,7 +231,7 @@ def parse_biom(filename, keep_otus=True, internal_levels=False):
     lst1 = [str(s) for s in strs.split('\n')[1:]] # skip the "# Constructed from biom file" entry
     biom_file = []
     out = [lst1[0]] # save the header
-    pre_taxa = compile(".__")
+    # pre_taxa = compile(".__")
     classs = compile("\(class\)")
 
     # consistency check
@@ -249,7 +252,7 @@ def parse_biom(filename, keep_otus=True, internal_levels=False):
         # Clean and move taxa in first place
         taxa = '.'.join([s.strip().replace('[', '').replace('u\'', '').replace(']', '').replace(' ', '').replace('\'', '')
                          for s in l.split('\t')[-1].split(',')])
-        taxa = pre_taxa.sub('', taxa) # remove '{k|p|o|g|s}__'
+        taxa = pre_taxa.sub('', taxa) # remove '{k|p|c|o|f|g|s|t}__'
         taxa = classs.sub('', taxa) # remove '(class)'
         taxa = taxa.rstrip('.') # remove trailing dots
 
@@ -357,7 +360,7 @@ def get_biomarkes(abundant, xxx):
     Return the set of branches as biomarkers to highlight.
     """
     cc = []
-    bk = set()
+    old_bk = set()
     lvl = 0
 
     for _, t in abundant:
@@ -373,6 +376,11 @@ def get_biomarkes(abundant, xxx):
         if len(bk) >= xxx:
             break
 
+        if len(old_bk) > len(bk):
+            bk = old_bk
+            break
+
+        old_bk = bk
         lvl += 1
 
     return bk
@@ -528,9 +536,11 @@ def main():
 
         # find the xxx most abundant
         abundant = get_most_abundant(abundances, args.most_abundant)
+        #print "abundant:", abundant
 
         # find the taxonomy level with at least yyy distinct childs from the xxx most abundant
         biomarkers = get_biomarkes(abundant, args.least_biomarkers)
+        #print "biomarkers:", biomarkers
 
         # compose lefse_output variable
         for _, t in abundant:
@@ -542,7 +552,7 @@ def main():
 
             lefse_output[t] = (2., b, '', '')
 
-        max_effect_size = 1. # It's not gonna working
+        max_effect_size = 2. # It's not gonna working... Maybe now??!?
     # no lefse_output and no lefse_input provided
     if lin and lout:
         print "You must provide at least one input file!"
@@ -589,8 +599,10 @@ def main():
 
             # write the biomarkers' legend
             for bk in biomarkers:
-                biom = bk.replace('_', ' ').upper()
+                biom = pre_taxa.sub('', bk).replace('_', ' ').upper() # remove '{k|p|c|o|f|g|s|t}__'
+                #print biom,
                 rgb = scale_color(colors[color[bk]])
+                #print rgb
                 annot_file.write('\n'.join(['\t'.join([biom, 'annotation', biom]),
                                             '\t'.join([biom, 'clade_marker_color', rgb]),
                                             '\t'.join([biom, 'clade_marker_size', '40']), '\n']))
@@ -599,7 +611,7 @@ def main():
             for taxonomy in taxa:
                 level = taxonomy.count('.') + 1 # which level is this taxonomy?
                 clean_taxonomy = taxonomy[taxonomy.rfind('.') + 1:] # retrieve the last level in taxonomy
-                cleanest_taxonomy = clean_taxonomy.replace('_', ' ') # substitute '_' with ' '
+                cleanest_taxonomy = pre_taxa.sub('', clean_taxonomy).replace('_', ' ') # remove '{k|p|c|o|f|g|s|t}__' and substitute '_' with ' '
                 scaled = args.def_clade_size
 
                 # scaled the size of the clade by the average abundance
@@ -627,7 +639,7 @@ def main():
                             font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / l)
 
                             annot_file.write('\n'.join(['\t'.join([t, 'annotation_background_color', scale_color(colors[0])]),
-                                                        '\t'.join([t, 'annotation', t.replace('_', ' ')]),
+                                                        '\t'.join([t, 'annotation', pre_taxa.sub('', t).replace('_', ' ')]), # remove '{k|p|c|o|f|g|s|t}__' and substitute '_' with ' '
                                                         '\t'.join([t, 'annotation_font_size', str(font_size)]), '\n']))
 
                 # put a bakcground annotation to the clades specified by the user
@@ -649,7 +661,7 @@ def main():
                             font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / lvl)
 
                             annot_file.write('\n'.join(['\t'.join([l, 'annotation_background_color', bg_color]),
-                                                        '\t'.join([l, 'annotation', l.replace('_', ' ')]),
+                                                        '\t'.join([l, 'annotation', pre_taxa.sub('', l).replace('_', ' ')]), # remove '{k|p|c|o|f|g|s|t}__' and substitute '_' with ' '
                                                         '\t'.join([l, 'annotation_font_size', str(font_size)]), '\n']))
 
                             done_clades.append(l)
@@ -662,6 +674,8 @@ def main():
                         if bk:
                             #fac = abs(log10(float(es) / max_effect_size)) / max_log_effect_size
                             fac = log10(1. + 9. * (float(es) / max_effect_size))
+                            #print "bk:", bk, "es:", es, "max:", max_effect_size
+                            #exit(1)
 
                             try:
                                 rgbs = scale_color(colors[color[bk]], fac)
