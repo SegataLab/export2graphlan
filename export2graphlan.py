@@ -489,8 +489,22 @@ def main():
 
         if not lin:
             taxa = [t.replace('|', '.').strip() for t in lefse_input.get_fnames()] # build taxonomy list
+
+            # check for duplicate taxa entries
+            if len(taxa) != len(set(taxa)):
+                print "There are duplicate taxa entries, please check the input file!"
+                exit(1)
+
+            # check if there are abundances to extract
             abundances = dict(lefse_input.get_averages())
-            max_abundances = max([abundances[x] for x in abundances])
+            tot_abu = sum([abundances[a] for a in abundances if np.isfinite(abundances[a])])
+
+            if tot_abu > 0:
+                max_abundances = max([abundances[x] for x in abundances])
+            else:
+                abundances = dict()
+                lin = False
+                print "abundances: empty"
     else: # no lefse_input provided
         lin = True
 
