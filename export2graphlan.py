@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+
+import numpy as np
 from argparse import ArgumentParser
 from colorsys import hsv_to_rgb
 from math import log10
@@ -10,8 +12,8 @@ from hclust2.hclust2 import DataMatrix
 
 __author__ = 'Francesco Asnicar'
 __email__ = "francesco.asnicar@gmail.com"
-__version__ = '0.17'
-__date__ = '21th August 2014'
+__version__ = '0.18'
+__date__ = '26th January 2016'
 
 
 pre_taxa = compile(".__")
@@ -518,6 +520,9 @@ def main():
 
             with open(args.lefse_output, 'r') as out_file:
                 for line in out_file:
+                    #print
+                    #print '>>>'+line+'<<<'
+                    #print
                     t, m, bk, es, pv = line.strip().split('\t')
                     lefse_output[t] = (es, bk, m, pv)
 
