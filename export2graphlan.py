@@ -11,8 +11,8 @@ from hclust2.hclust2 import DataMatrix
 
 
 __author__ = 'Francesco Asnicar'
-__email__ = "francesco.asnicar@gmail.com"
-__version__ = '0.18'
+__email__ = 'f.asnicar@unitn.it'
+__version__ = '0.19'
 __date__ = '26th January 2016'
 
 
@@ -47,9 +47,9 @@ def read_params():
     Parse the input parameters, performing some validity check.
     Return the parsed arguments.
     """
-    parser = ArgumentParser(description="export2graphlan.py (ver. " + __version__ +
-        " of " + __date__ + "). Convert MetaPhlAn, LEfSe, and/or HUMAnN output to GraPhlAn input format. Authors: "
-        + __author__ + " (" + __email__ + ")")
+    parser = ArgumentParser(description="export2graphlan.py (ver. "+__version__+
+        " of "+__date__+"). Convert MetaPhlAn, LEfSe, and/or HUMAnN output to GraPhlAn input format. Authors: "+
+        __author__+" ("+__email__+")")
 
     # input parameters group
     group = parser.add_argument_group(title='input parameters',
@@ -482,8 +482,7 @@ def main():
                             aaa[row[0].strip().replace('|', '.')] = [float(s.strip()) for s in row[1:]]
 
                 feats = add_missing_levels(aaa, summ=False)
-                ss = '\t'.join(header)
-                ss += '\n'
+                ss = '\t'.join(header) + '\n'
                 ss += '\n'.join(['\t'.join([str(s) for s in [k] + feats[k]]) for k in feats])
                 lefse_input = DataMatrix(StringIO(ss), args)
             else:
@@ -491,6 +490,28 @@ def main():
 
         if not lin:
             taxa = [t.replace('|', '.').strip() for t in lefse_input.get_fnames()] # build taxonomy list
+
+            # build all intermediate levels
+            inter_lvls = []
+
+            for t in taxa:
+                s = ''
+
+                for tt in t.split('.')[:-1]:
+                    s = '.'.join([s, tt]) if s else tt
+
+                    #if 'Biosynthesis' in s:
+                    #    print s, s not in taxa
+
+                    if (s not in taxa) and (s not in inter_lvls):
+                        inter_lvls.append(s)
+
+            taxa += inter_lvls
+            taxa.sort()
+
+            #for t in taxa:
+            #    if 'Biosynthesis' in t:
+            #        print t
 
             # check for duplicate taxa entries
             if len(taxa) != len(set(taxa)):
@@ -526,6 +547,9 @@ def main():
                     t, m, bk, es, pv = line.strip().split('\t')
                     lefse_output[t] = (es, bk, m, pv)
 
+                    #if 'Biosynthesis' in t and 'MIM' in bk:
+                    #    print '*'+line.strip()+'*'
+
                     # get distinct biomarkers
                     if bk:
                         biomarkers |= set([bk])
@@ -535,6 +559,8 @@ def main():
                         lst.append(float(es))
 
                 max_effect_size = max(lst)
+
+            #print biomarkers
 
             # no lefse_input file provided!
             if (not taxa) and (not abundances): # build taxonomy list and abundaces map
@@ -547,6 +573,9 @@ def main():
                 for t in lefse_output:
                     scaled = scale_clade_size(args.min_clade_size, args.max_clade_size,
                                               abundances[t.replace('.', '|')], max_abundances)
+
+                    #if 'Biosynthesis' in t:
+                    #    print t, scaled, args.abundance_threshold
 
                     if scaled >= args.abundance_threshold:
                         taxa.append(t.replace('|', '.').strip())
@@ -571,7 +600,8 @@ def main():
 
             lefse_output[t] = (2., b, '', '')
 
-        max_effect_size = 2. # It's not gonna working... Maybe now??!?
+        max_effect_size = 2. # It's not gonna work... Maybe now??!?
+
     # no lefse_output and no lefse_input provided
     if lin and lout:
         print "You must provide at least one input file!"
@@ -584,9 +614,13 @@ def main():
     # for each biomarker assign it to a different color
     i = 0
 
+    #print "biomarkers:", biomarkers
+
     for bk in biomarkers:
         color[bk] = i % len(colors)
         i += 1
+
+    #print "color:", color
 
     # find max log abs value of effect size
     if lefse_output:
@@ -689,6 +723,9 @@ def main():
                     if taxonomy in lefse_output:
                         es, bk, _, _ = lefse_output[taxonomy]
 
+                        #if bk and 'Biosynthesis' in taxonomy:
+                        #    print taxonomy, es, bk
+
                         # if it is a biomarker then color and label it!
                         if bk:
                             #fac = abs(log10(float(es) / max_effect_size)) / max_log_effect_size
@@ -705,8 +742,7 @@ def main():
 
                             annot_file.write(''.join(['\t'.join([clean_taxonomy, 'clade_marker_color', rgbs]), '\n']))
 
-                            # write the annotation only if the abundance is above a given threshold and it is either
-                            # internal or external annotation lists
+                            # write the annotation only if the abundance is above a given threshold and it is either internal or external annotation lists
                             if (scaled >= args.abundance_threshold) and \
                                ((level in annotations_list) or (level in external_annotations_list)):
                                 font_size = args.min_font_size + ((args.max_font_size - args.min_font_size) / level)
