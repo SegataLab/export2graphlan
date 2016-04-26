@@ -458,7 +458,12 @@ def main():
 
     # get the levels that will use the external legend annotation
     if args.external_annotations:
+        print '[W] Some annotation levels are present in both internal and external params. The shared levels has been removed from the internal list.'
         external_annotations_list = [int(i.strip()) for i in args.external_annotations.strip().split(',')]
+
+    # check overlapping between internal and external annotations
+    if set(annotations_list) & set(external_annotations_list):
+        annotations_list = list( set(annotations_list) - set(external_annotations_list) )
 
     if args.lefse_input:
         # if the lefse_input is in biom format, convert it
@@ -500,18 +505,11 @@ def main():
                 for tt in t.split('.')[:-1]:
                     s = '.'.join([s, tt]) if s else tt
 
-                    #if 'Biosynthesis' in s:
-                    #    print s, s not in taxa
-
                     if (s not in taxa) and (s not in inter_lvls):
                         inter_lvls.append(s)
 
             taxa += inter_lvls
             taxa.sort()
-
-            #for t in taxa:
-            #    if 'Biosynthesis' in t:
-            #        print t
 
             # check for duplicate taxa entries
             if len(taxa) != len(set(taxa)):
@@ -547,9 +545,6 @@ def main():
                     t, m, bk, es, pv = line.strip().split('\t')
                     lefse_output[t] = (es, bk, m, pv)
 
-                    #if 'Biosynthesis' in t and 'MIM' in bk:
-                    #    print '*'+line.strip()+'*'
-
                     # get distinct biomarkers
                     if bk:
                         biomarkers |= set([bk])
@@ -559,8 +554,6 @@ def main():
                         lst.append(float(es))
 
                 max_effect_size = max(lst)
-
-            #print biomarkers
 
             # no lefse_input file provided!
             if (not taxa) and (not abundances): # build taxonomy list and abundaces map
@@ -574,9 +567,6 @@ def main():
                     scaled = scale_clade_size(args.min_clade_size, args.max_clade_size,
                                               abundances[t.replace('.', '|')], max_abundances)
 
-                    #if 'Biosynthesis' in t:
-                    #    print t, scaled, args.abundance_threshold
-
                     if scaled >= args.abundance_threshold:
                         taxa.append(t.replace('|', '.').strip())
     elif not lin: # no lefse_output provided and lefse_input correctly red
@@ -584,11 +574,11 @@ def main():
 
         # find the xxx most abundant
         abundant = get_most_abundant(abundances, args.most_abundant)
-        #print "abundant:", abundant
+        #print "abundant:", len(abundant), abundant
 
         # find the taxonomy level with at least yyy distinct childs from the xxx most abundant
         biomarkers = get_biomarkes(abundant, args.least_biomarkers)
-        #print "biomarkers:", biomarkers
+        #print "biomarkers:", len(biomarkers), biomarkers
 
         # compose lefse_output variable
         for _, t in abundant:
@@ -723,15 +713,9 @@ def main():
                     if taxonomy in lefse_output:
                         es, bk, _, _ = lefse_output[taxonomy]
 
-                        #if bk and 'Biosynthesis' in taxonomy:
-                        #    print taxonomy, es, bk
-
                         # if it is a biomarker then color and label it!
                         if bk:
-                            #fac = abs(log10(float(es) / max_effect_size)) / max_log_effect_size
                             fac = log10(1. + 9. * (float(es) / max_effect_size))
-                            #print "bk:", bk, "es:", es, "max:", max_effect_size
-                            #exit(1)
 
                             try:
                                 rgbs = scale_color(colors[color[bk]], fac)
