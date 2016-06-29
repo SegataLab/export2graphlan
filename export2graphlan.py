@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 
+import os
 import numpy as np
 from argparse import ArgumentParser
 from colorsys import hsv_to_rgb
@@ -19,7 +20,7 @@ __date__ = '26th January 2016'
 pre_taxa = compile(".__")
 
 
-def scale_color((h, s, v), factor=1.):
+def scale_color((h, s, v), factor=1.0):
     """
     Takes as input a tuple that represents a color in HSV format, and optionally a scale factor.
     Return an RGB string that is the converted HSV color, scaled by the given factor.
@@ -191,6 +192,12 @@ def read_params():
         action='store_true',
         help="If specified sum-up from leaf to root the abundances values. Default is False, i.e. do not sum-up abundances "
              "on the internal nodes")
+    # path to a mapping file that associates biomarkers to colors
+    parser.add_argument('--biomarkers2colors',
+    default=None,
+    type=str,
+    required=False,
+    help="Mapping file that associates biomarkers to a specific color... I'll define later the specific format of this file!")
 
     DataMatrix.input_parameters(parser)
     args = parser.parse_args()
@@ -397,8 +404,14 @@ def scale_clade_size(minn, maxx, abu, max_abu):
 def main():
     """
     """
-    colors = [(245., 90., 100.), (125., 80., 80.), (0., 80., 100.), (195., 100., 100.),
-              (150., 100., 100.), (55., 100., 100.), (280., 80., 88.)] # HSV format
+    # HSV
+    colors = [(245., 90., 100.), # blue
+              (125., 80., 80.), # green
+              (0., 80., 100.), # red
+              (195., 100., 100.), # cyan
+              (150., 100., 100.), # light green
+              (55., 100., 100.), # yellow
+              (280., 80., 88.)] # purple
     args = read_params()
     lefse_input = None
     lefse_output = {}
@@ -473,7 +486,7 @@ def main():
                 lefse_input = DataMatrix(StringIO(biom), args)
             except Exception as e:
                 lin = True
-                print e
+                print 'Exception:', e
         else:
             if args.internal_levels:
                 aaa = {}
@@ -602,15 +615,22 @@ def main():
         tree_file.write('\n'.join(taxa))
 
     # for each biomarker assign it to a different color
-    i = 0
+    if os.path.isfile(args.biomarkers2colors): # there exists a mapping file from biomarkers to colors read it
+        with open(args.biomarkers2colors) as f:
+            for row in f:
+                if not row.startswith('#'):
+                    bk = row.strip().split('\t')[0]
+                    cl = tuple([float(i.strip()) for i in row.strip().split('\t')[1].split(',')])
+                    colors.append(cl)
+                    color[bk] = colors.index(cl)
+    else: # assign them automagically!
+        i = 0
 
-    #print "biomarkers:", biomarkers
+        for bk in biomarkers:
+            color[bk] = i % len(colors)
+            i += 1
 
-    for bk in biomarkers:
-        color[bk] = i % len(colors)
-        i += 1
-
-    #print "color:", color
+    print "color:", color
 
     # find max log abs value of effect size
     if lefse_output:
@@ -720,7 +740,7 @@ def main():
                             try:
                                 rgbs = scale_color(colors[color[bk]], fac)
                             except Exception as e:
-                                print e
+                                print 'Exception:', e
                                 print ' '.join(["[W] Assign to", taxonomy, "the default color:", colors[color[bk]]])
                                 rgbs = colors[color[bk]]
 
@@ -736,7 +756,7 @@ def main():
                                                             '\t'.join([clean_taxonomy, 'annotation', annotation]),
                                                             '\t'.join([clean_taxonomy, 'annotation_font_size', str(font_size)]), '\n']))
     except Exception as e:
-        print e
+        print 'Exception:', e
 
 
 if __name__ == '__main__':
