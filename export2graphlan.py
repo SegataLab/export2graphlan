@@ -471,12 +471,12 @@ def main():
 
     # get the levels that will use the external legend annotation
     if args.external_annotations:
-        print '[W] Some annotation levels are present in both internal and external params. The shared levels has been removed from the internal list.'
         external_annotations_list = [int(i.strip()) for i in args.external_annotations.strip().split(',')]
 
     # check overlapping between internal and external annotations
     if set(annotations_list) & set(external_annotations_list):
-        annotations_list = list( set(annotations_list) - set(external_annotations_list) )
+        print '[W] Some annotation levels are present in both internal and external params. The shared levels has been removed from the internal list.'
+        annotations_list = list(set(annotations_list) - set(external_annotations_list))
 
     if args.lefse_input:
         # if the lefse_input is in biom format, convert it
@@ -552,9 +552,9 @@ def main():
 
             with open(args.lefse_output, 'r') as out_file:
                 for line in out_file:
-                    #print
-                    #print '>>>'+line+'<<<'
-                    #print
+                    # print
+                    # print '>>>'+line+'<<<'
+                    # print
                     t, m, bk, es, pv = line.strip().split('\t')
                     lefse_output[t] = (es, bk, m, pv)
 
@@ -587,11 +587,11 @@ def main():
 
         # find the xxx most abundant
         abundant = get_most_abundant(abundances, args.most_abundant)
-        #print "abundant:", len(abundant), abundant
+        # print "abundant:", len(abundant), abundant
 
         # find the taxonomy level with at least yyy distinct childs from the xxx most abundant
         biomarkers = get_biomarkes(abundant, args.least_biomarkers)
-        #print "biomarkers:", len(biomarkers), biomarkers
+        # print "biomarkers:", len(biomarkers), biomarkers
 
         # compose lefse_output variable
         for _, t in abundant:
@@ -615,14 +615,15 @@ def main():
         tree_file.write('\n'.join(taxa))
 
     # for each biomarker assign it to a different color
-    if os.path.isfile(args.biomarkers2colors): # there exists a mapping file from biomarkers to colors read it
-        with open(args.biomarkers2colors) as f:
-            for row in f:
-                if not row.startswith('#'):
-                    bk = row.strip().split('\t')[0]
-                    cl = tuple([float(i.strip()) for i in row.strip().split('\t')[1].split(',')])
-                    colors.append(cl)
-                    color[bk] = colors.index(cl)
+    if args.biomarkers2colors:
+        if os.path.isfile(args.biomarkers2colors): # there exists a mapping file from biomarkers to colors read it
+            with open(args.biomarkers2colors) as f:
+                for row in f:
+                    if not row.startswith('#'):
+                        bk = row.strip().split('\t')[0]
+                        cl = tuple([float(i.strip()) for i in row.strip().split('\t')[1].split(',')])
+                        colors.append(cl)
+                        color[bk] = colors.index(cl)
     else: # assign them automagically!
         i = 0
 
@@ -630,7 +631,7 @@ def main():
             color[bk] = i % len(colors)
             i += 1
 
-    print "color:", color
+    # print "color:", color
 
     # find max log abs value of effect size
     if lefse_output:
@@ -663,9 +664,9 @@ def main():
             # write the biomarkers' legend
             for bk in biomarkers:
                 biom = pre_taxa.sub('', bk).replace('_', ' ').upper() # remove '{k|p|c|o|f|g|s|t}__'
-                #print biom,
+                # print biom,
                 rgb = scale_color(colors[color[bk]])
-                #print rgb
+                # print rgb
                 annot_file.write('\n'.join(['\t'.join([biom, 'annotation', biom]),
                                             '\t'.join([biom, 'clade_marker_color', rgb]),
                                             '\t'.join([biom, 'clade_marker_size', '40']), '\n']))
