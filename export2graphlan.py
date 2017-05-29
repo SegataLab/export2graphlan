@@ -13,8 +13,8 @@ from hclust2.hclust2 import DataMatrix
 
 __author__ = 'Francesco Asnicar'
 __email__ = 'f.asnicar@unitn.it'
-__version__ = '0.19'
-__date__ = '26th January 2016'
+__version__ = '0.20'
+__date__ = '29th May 2017'
 
 
 pre_taxa = compile(".__")
@@ -109,8 +109,10 @@ def read_params():
         required=False,
         help="Set the color to use for the shaded background. Colors can be either in RGB or HSV (using a semi-colon to "
              "separate values, surrounded with ()) format. Use a comma separate values form and surround the string with "
-             "\" if it contains spaces. Example: --background_colors \"#29cc36, (150; 100; 100), (280; 80; 88)\". Default "
-             "is None")
+             "\" if it contains spaces. Example: --background_colors \"#29cc36, (150; 100; 100), (280; 80; 88)\". To use "
+             "a fixed set of colors associated to a fixed set of clades, you can specify a mapping file in a tab-separated "
+             "format, where the first column is the clade (using the same format as for the \"--background_clades\" param) "
+             "and the second colum is the color associated. Default is None")
     # title
     parser.add_argument('--title',
         type=str,
@@ -436,7 +438,7 @@ def main():
 
     # get the background_clades
     if args.background_clades:
-        if get_file_type(args.background_colors) in ['txt']:
+        if get_file_type(args.background_clades) in ['txt']:
             with open(args.background_clades, 'r') as f:
                 background_clades = [str(s.strip()) for s in f]
         else: # it's a string in csv format
@@ -446,24 +448,26 @@ def main():
     if args.background_colors:
         col = []
 
-        if get_file_type(args.background_colors) in ['txt']:
-            with open(args.background_colors, 'r') as f:
-                col = [str(s.strip()) for s in f]
+        if get_file_type(args.background_colors) in ['txt']: # it's a mapping file
+            background_colors = dict([tuple(a.strip().split('\t')) for a in open(args.background_colors, 'r')])
+            # with open(args.background_colors, 'r') as f:
+            #     col = [str(s.strip()) for s in f]
         else: # it's a string in csv format
             col = [c.strip() for c in args.background_colors.split(',')]
 
         lst = {}
         i = 0
 
-        for c in background_clades:
-            cc = c[:c.find('.')]
+        if not background_colors:
+            for c in background_clades:
+                cc = c[:c.find('.')]
 
-            if cc not in lst:
-                background_colors[c] = col[i % len(col)]
-                lst[cc] = col[i % len(col)]
-                i += 1
-            else:
-                background_colors[c] = lst[cc]
+                if cc not in lst:
+                    background_colors[c] = col[i % len(col)]
+                    lst[cc] = col[i % len(col)]
+                    i += 1
+                else:
+                    background_colors[c] = lst[cc]
 
     # get the levels that will use the internal annotation
     if args.annotations:
