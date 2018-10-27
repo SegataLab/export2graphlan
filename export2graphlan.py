@@ -13,8 +13,8 @@ from hclust2.hclust2 import DataMatrix
 
 __author__ = 'Francesco Asnicar'
 __email__ = 'f.asnicar@unitn.it'
-__version__ = '0.20'
-__date__ = '29th May 2017'
+__version__ = '0.2.1'
+__date__ = '27 October 2018'
 
 
 pre_taxa = compile(".__")
