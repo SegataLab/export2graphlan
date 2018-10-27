@@ -261,11 +261,12 @@ def parse_biom(filename, keep_otus=True, internal_levels=False):
             otu = l.split('\t')[0]
 
         # Clean and move taxa in first place
-        taxa = '.'.join([s.strip().replace('[', '').replace('u\'', '').replace(']', '').replace(' ', '').replace('\'', '')
+        taxa = '.'.join([s.strip().replace('u\'', '').replace(' ', '').replace('\'', '').replace('[', '').replace(']', '').replace('{', '').replace('}', '').replace('(', '').replace(')', '').replace('=', '_').replace('-', '_')
                          for s in l.split('\t')[-1].split(',')])
-        taxa = pre_taxa.sub('', taxa) # remove '{k|p|c|o|f|g|s|t}__'
-        taxa = classs.sub('', taxa) # remove '(class)'
-        taxa = taxa.rstrip('.') # remove trailing dots
+        taxa = pre_taxa.sub('', taxa)  # remove '{k|p|c|o|f|g|s|t}__'
+        taxa = classs.sub('', taxa)  # remove '(class)'
+        taxa = taxa.rstrip('.')  # remove trailing dots
+        taxa = taxa.rstrip('_')  # remove trailing underscores
 
         if otu:
             taxa = taxa + '.' + otu
@@ -511,7 +512,8 @@ def main():
                 lefse_input = DataMatrix(args.lefse_input, args)
 
         if not lin:
-            taxa = [t.replace('|', '.').strip() for t in lefse_input.get_fnames()] # build taxonomy list
+            taxa = [t.replace('|', '.').strip().replace('u\'', '').replace(' ', '').replace('\'', '').replace('[', '').replace(']', '').replace('{', '').replace('}', '').replace('(', '').replace(')', '').replace('=', '_').replace('-', '_')
+                    for t in lefse_input.get_fnames()]  # build taxonomy list
 
             # build all intermediate levels
             inter_lvls = []
@@ -585,8 +587,8 @@ def main():
                                               abundances[t.replace('.', '|')], max_abundances)
 
                     if scaled >= args.abundance_threshold:
-                        taxa.append(t.replace('|', '.').strip())
-    elif not lin: # no lefse_output provided and lefse_input correctly red
+                        taxa.append(t.replace('|', '.').strip().replace('u\'', '').replace(' ', '').replace('\'', '').replace('[', '').replace(']', '').replace('{', '').replace('}', '').replace('(', '').replace(')', '').replace('=', '_').replace('-', '_'))
+    elif not lin:  # no lefse_output provided and lefse_input correctly red
         lout = True
 
         # find the xxx most abundant
@@ -607,7 +609,7 @@ def main():
 
             lefse_output[t] = (2., b, '', '')
 
-        max_effect_size = 2. # It's not gonna work... Maybe now??!?
+        max_effect_size = 2.  # It's not gonna work... Maybe now??!?
 
     # no lefse_output and no lefse_input provided
     if lin and lout:
@@ -620,7 +622,7 @@ def main():
 
     # for each biomarker assign it to a different color
     if args.biomarkers2colors:
-        if os.path.isfile(args.biomarkers2colors): # there exists a mapping file from biomarkers to colors read it
+        if os.path.isfile(args.biomarkers2colors):  # there exists a mapping file from biomarkers to colors read it
             with open(args.biomarkers2colors) as f:
                 for row in f:
                     if not row.startswith('#'):
@@ -628,7 +630,7 @@ def main():
                         cl = tuple([float(i.strip()) for i in row.strip().split('\t')[1].split(',')])
                         colors.append(cl)
                         color[bk] = colors.index(cl)
-    else: # assign them automagically!
+    else:  # assign them automagically!
         i = 0
 
         for bk in biomarkers:
