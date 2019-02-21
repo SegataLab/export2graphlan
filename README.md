@@ -10,9 +10,18 @@
 
 # INSTALLATION #
 
-**export2graphlan** should be obtained using [Mercurial](http://mercurial.selenic.com/) and is available in Bitbucket here: [export2graphlan repository](https://bitbucket.org/CibioCM/export2graphlan).
+**export2graphlan** is available in Bitbucket here: [export2graphlan repository](https://bitbucket.org/CibioCM/export2graphlan) and can be obtained using:
 
-In a Unix environment you have to type:
+1. [Bioconda](https://bioconda.github.io/)
+
+```
+#!bash
+
+$ conda install export2graphlan
+```
+
+2. [Mercurial])http://mercurial.selenic.com/)
+
 ```
 #!bash
 
