@@ -15,30 +15,23 @@
 1. [Bioconda](https://bioconda.github.io/)
 
 ```
-#!bash
-
 $ conda install export2graphlan
 ```
 
 2. [Mercurial](http://mercurial.selenic.com/)
 
 ```
-#!bash
-
 $ git clone git@github.com:SegataLab/export2graphlan.git
 ```
 
 This will download the **export2graphlan** repository locally in the ``export2graphlan`` subfolder. You then have to put this subfolder into the system path, so that you can use **export2graphlan** from anywhere in your system:
 ```
-#!bash
-
 $ export PATH=`pwd`/export2graphlan/:$PATH
 ```
 Adding the above line into the bash configuration file will make the path addition permanent. For Windows or MacOS systems a similar procedure should be followed.
 
 # USAGE #
 ```
-#!
 usage: export2graphlan.py [-h] [-i LEFSE_INPUT] [-o LEFSE_OUTPUT] -t TREE -a
 usage: export2graphlan.py [-h] [-i LEFSE_INPUT] [-o LEFSE_OUTPUT] -t TREE -a
                           ANNOTATION [--annotations ANNOTATIONS]
@@ -182,7 +175,7 @@ Input data matrix parameters:
                         which means no replacement]
 ```
 
-*Note*: the last input parameters (``Input data matrix parameters``) refer to the **DataMatrix** class contained in the [hclust2](https://bitbucket.org/nsegata/hclust2/overview) repository.
+*Note*: the last input parameters (``Input data matrix parameters``) refer to the **DataMatrix** class contained in the [hclust2](https://github.com/SegataLab/hclust2) repository.
 
 # EXAMPLES #
 The ``examples`` folder contains the following sub-folders: ``hmp_aerobiosis``, ``hmp_metahit_metabolic``, and ``hmp_metahit_mp2``.
