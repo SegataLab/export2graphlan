@@ -10,7 +10,7 @@
 
 # INSTALLATION #
 
-**export2graphlan** is available in Bitbucket here: [export2graphlan repository](https://bitbucket.org/CibioCM/export2graphlan) and can be obtained using:
+**export2graphlan** is available in GitHub here: [export2graphlan repository](hhttps://github.com/SegataLab/export2graphlan) and can be obtained using:
 
 1. [Bioconda](https://bioconda.github.io/)
 
@@ -20,18 +20,12 @@
 $ conda install export2graphlan
 ```
 
-2. [Mercurial])http://mercurial.selenic.com/)
+2. [Mercurial](http://mercurial.selenic.com/)
 
 ```
 #!bash
 
-$ hg clone ssh://hg@bitbucket.org/CibioCM/export2graphlan
-```
-or, alternatively:
-```
-#!bash
-
-$ hg clone https://hg@bitbucket.org/CibioCM/export2graphlan
+$ git clone git@github.com:SegataLab/export2graphlan.git
 ```
 
 This will download the **export2graphlan** repository locally in the ``export2graphlan`` subfolder. You then have to put this subfolder into the system path, so that you can use **export2graphlan** from anywhere in your system:
@@ -209,4 +203,4 @@ If everything goes well you should find in the same folder of the example six ne
 * ``tree.txt``: is the tree produced by the export2graphlan.py script
 
 # CONTACTS #
-Francesco Asnicar ([francescoasnicar@gmail.com](mailto:francescoasnicar@gmail.com))
+Francesco Asnicar ([f.asnicar@unitn.it](mailto:f.asnicar@unitn.it))
