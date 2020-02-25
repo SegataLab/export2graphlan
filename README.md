@@ -10,15 +10,15 @@
 
 # INSTALLATION #
 
-**export2graphlan** is available in GitHub here: [export2graphlan repository](hhttps://github.com/SegataLab/export2graphlan) and can be obtained using:
+**export2graphlan** is available in GitHub here: [export2graphlan repository](https://github.com/SegataLab/export2graphlan) and can be obtained using:
 
-1. [Bioconda](https://bioconda.github.io/)
+1. [Bioconda](https://bioconda.github.io/recipes/export2graphlan/README.html)
 
 ```
 $ conda install export2graphlan
 ```
 
-2. [Mercurial](http://mercurial.selenic.com/)
+2. Repository
 
 ```
 $ git clone git@github.com:SegataLab/export2graphlan.git
@@ -32,7 +32,6 @@ Adding the above line into the bash configuration file will make the path additi
 
 # USAGE #
 ```
-usage: export2graphlan.py [-h] [-i LEFSE_INPUT] [-o LEFSE_OUTPUT] -t TREE -a
 usage: export2graphlan.py [-h] [-i LEFSE_INPUT] [-o LEFSE_OUTPUT] -t TREE -a
                           ANNOTATION [--annotations ANNOTATIONS]
                           [--external_annotations EXTERNAL_ANNOTATIONS]
@@ -50,7 +49,8 @@ usage: export2graphlan.py [-h] [-i LEFSE_INPUT] [-o LEFSE_OUTPUT] -t TREE -a
                           [--abundance_threshold ABUNDANCE_THRESHOLD]
                           [--most_abundant MOST_ABUNDANT]
                           [--least_biomarkers LEAST_BIOMARKERS]
-                          [--discard_otus] [--internal_levels] [--sep SEP]
+                          [--discard_otus] [--internal_levels]
+                          [--biomarkers2colors BIOMARKERS2COLORS] [--sep SEP]
                           [--out_table OUT_TABLE] [--fname_row FNAME_ROW]
                           [--sname_row SNAME_ROW]
                           [--metadata_rows METADATA_ROWS]
@@ -58,9 +58,9 @@ usage: export2graphlan.py [-h] [-i LEFSE_INPUT] [-o LEFSE_OUTPUT] -t TREE -a
                           [--fperc FPERC] [--stop STOP] [--ftop FTOP]
                           [--def_na DEF_NA]
 
-export2graphlan.py (ver. 0.17 of 21th August 2014). Convert MetaPhlAn, LEfSe,
+export2graphlan.py (ver. 0.2.1 of 27 October 2018). Convert MetaPhlAn, LEfSe,
 and/or HUMAnN output to GraPhlAn input format. Authors: Francesco Asnicar
-(francesco.asnicar@gmail.com)
+(f.asnicar@unitn.it)
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -75,14 +75,15 @@ optional arguments:
   --background_levels BACKGROUND_LEVELS
                         List which levels should be highlight with a shaded
                         background. Use a comma separate values form, e.g.,
-                        --background_levels 1,2,3
+                        --background_levels 1,2,3. Default is None
   --background_clades BACKGROUND_CLADES
                         Specify the clades that should be highlight with a
                         shaded background. Use a comma separate values form
-                        and surround the string with " if it contains spaces.
+                        and surround the string with " if there are spaces.
                         Example: --background_clades "Bacteria.Actinobacteria,
                         Bacteria.Bacteroidetes.Bacteroidia,
-                        Bacteria.Firmicutes.Clostridia.Clostridiales"
+                        Bacteria.Firmicutes.Clostridia.Clostridiales". Default
+                        is None
   --background_colors BACKGROUND_COLORS
                         Set the color to use for the shaded background. Colors
                         can be either in RGB or HSV (using a semi-colon to
@@ -90,7 +91,12 @@ optional arguments:
                         comma separate values form and surround the string
                         with " if it contains spaces. Example:
                         --background_colors "#29cc36, (150; 100; 100), (280;
-                        80; 88)"
+                        80; 88)". To use a fixed set of colors associated to a
+                        fixed set of clades, you can specify a mapping file in
+                        a tab-separated format, where the first column is the
+                        clade (using the same format as for the "--
+                        background_clades" param) and the second colum is the
+                        color associated. Default is None
   --title TITLE         If specified set the title of the GraPhlAn plot.
                         Surround the string with " if it contains spaces,
                         e.g., --title "Title example"
@@ -120,25 +126,35 @@ optional arguments:
   --most_abundant MOST_ABUNDANT
                         When only lefse_input is provided, you can specify how
                         many clades highlight. Since the biomarkers are
-                        missing, they will be chosen from the most abundant
+                        missing, they will be chosen from the most abundant.
+                        Default is 10
   --least_biomarkers LEAST_BIOMARKERS
                         When only lefse_input is provided, you can specify the
                         minimum number of biomarkers to extract. The taxonomy
                         is parsed, and the level is choosen in order to have
-                        at least the specified number of biomarkers
+                        at least the specified number of biomarkers. Default
+                        is 3
   --discard_otus        If specified the OTU ids will be discarde from the
-                        taxonmy. Default behavior keep OTU ids in taxonomy
+                        taxonmy. Default is True, i.e. keep OTUs IDs in
+                        taxonomy
   --internal_levels     If specified sum-up from leaf to root the abundances
-                        values. Default behavior do not sum-up abundances on
-                        the internal nodes
+                        values. Default is False, i.e. do not sum-up
+                        abundances on the internal nodes
+  --biomarkers2colors BIOMARKERS2COLORS
+                        Mapping file that associates biomarkers to a specific
+                        color... I'll define later the specific format of this
+                        file!
 
 input parameters:
   You need to provide at least one of the two arguments
 
   -i LEFSE_INPUT, --lefse_input LEFSE_INPUT
-                        LEfSe input data
+                        LEfSe input data. A file that can be given to LEfSe
+                        for biomarkers analysis. It can be the result of a
+                        MetaPhlAn or HUMAnN analysis
   -o LEFSE_OUTPUT, --lefse_output LEFSE_OUTPUT
-                        LEfSe output result data
+                        LEfSe output result data. The result of LEfSe analysis
+                        performed on the lefse_input file
 
 output parameters:
   -t TREE, --tree TREE  Output filename where save the input tree for GraPhlAn
@@ -173,6 +189,7 @@ Input data matrix parameters:
                         percentile specified by --fperc)
   --def_na DEF_NA       Set the default value for missing values [default None
                         which means no replacement]
+
 ```
 
 *Note*: the last input parameters (``Input data matrix parameters``) refer to the **DataMatrix** class contained in the [hclust2](https://github.com/SegataLab/hclust2) repository.
@@ -195,5 +212,5 @@ If everything goes well you should find in the same folder of the example six ne
 * ``outtree.txt``: is the annotated tree produced by graphlan_annotate.py
 * ``tree.txt``: is the tree produced by the export2graphlan.py script
 
-# CONTACTS #
-Francesco Asnicar ([f.asnicar@unitn.it](mailto:f.asnicar@unitn.it))
+# Support #
+If you should find problems in using **export2graphlan** please report them in [The bioBakery help forum](https://forum.biobakery.org/).
