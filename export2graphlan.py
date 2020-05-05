@@ -13,7 +13,7 @@ from hclust2 import DataMatrix
 
 __author__ = 'Francesco Asnicar'
 __email__ = 'f.asnicar@unitn.it'
-__version__ = '0.2.2'
+__version__ = '0.22'
 __date__ = '05 May 2020'
 
 
