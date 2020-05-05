@@ -8,13 +8,13 @@ from colorsys import hsv_to_rgb
 from math import log10
 from StringIO import StringIO
 from re import compile
-from hclust2.hclust2 import DataMatrix
+from hclust2 import DataMatrix
 
 
 __author__ = 'Francesco Asnicar'
 __email__ = 'f.asnicar@unitn.it'
-__version__ = '0.2.1'
-__date__ = '27 October 2018'
+__version__ = '0.2.2'
+__date__ = '05 May 2020'
 
 
 pre_taxa = compile(".__")
