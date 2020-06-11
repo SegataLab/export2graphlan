@@ -18,7 +18,12 @@
 $ conda install export2graphlan
 ```
 
-2. Repository
+2. [Pypi](https://pypi.org/project/export2graphlan/)
+```
+$ pip install export2graphlan
+```
+
+3. Repository
 
 ```
 $ git clone git@github.com:SegataLab/export2graphlan.git
